@@ -1,0 +1,6 @@
+.env
+akasha_venv/
+vector_db/
+__pycache__/
+data_csv/
+data/
