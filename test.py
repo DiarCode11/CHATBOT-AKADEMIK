@@ -1,26 +1,5 @@
-import pdfplumber
-import pandas as pd
+from src.agents.query_expansion_agent import QueryExpansionAgent
 
-# Inisialisasi penghitung untuk iterasi nama file
-table_count = 1
-
-with pdfplumber.open("data/Pedoman-Studi-2017.pdf") as pdf:
-    for page in pdf.pages:
-        tables = page.extract_tables()
-        # Menampilkan dan menyimpan hanya tabel yang tidak kosong
-        for table in tables:
-            if table:  # Mengecek apakah tabel tidak kosong
-                # Menampilkan tabel untuk verifikasi
-                print(table)
-                print("\n")
-
-                # Mengonversi tabel menjadi DataFrame
-                df = pd.DataFrame(table[1:], columns=table[0])
-
-                # Menyimpan DataFrame sebagai file CSV dengan nama berurutan
-                filename = f"data_csv/output_{table_count}.csv"
-                df.to_csv(filename, index=False)
-                print(f"Data berhasil disimpan ke {filename}")
-
-                # Meningkatkan penghitung untuk iterasi berikutnya
-                table_count += 1
+question = "Apa perbedaan antara KRS dan KHS untuk MABA di FMIPA?"
+expanded_question = QueryExpansionAgent.expand_query({"question": question})
+print("Expanded Question:", expanded_question)

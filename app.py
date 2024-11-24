@@ -22,6 +22,10 @@ with st.sidebar:
 st.title("👨‍🦰 Yuk Tanya Akasha")
 st.caption("🚀 Chatbot Informasi Akademik Undiksha")
 
+
+VIDEO_URL = "https://youtu.be/IMMiaLzrHEU?si=OmPCyLPIdN1H7_T0"
+st.video(VIDEO_URL)
+
 # Inisialisasi session state untuk menyimpan pesan
 if "messages" not in st.session_state:
     st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]

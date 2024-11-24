@@ -20,5 +20,5 @@ def create_response(question: str):
 
 
 if __name__ == "__main__":
-    question = "siapa saja dosen yang ada di jurusan teknik informatika"
+    question = "berapa nip hendra suputra"
     create_response(question)
