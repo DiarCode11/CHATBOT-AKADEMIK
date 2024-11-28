@@ -8,7 +8,7 @@ def create_response(question: str):
     relevant_chunks = similiarity_search(question)
 
     # Proses Augmentasi
-    complete_prompt = QUESTION_PROMPT.format(question=question, data=relevant_chunks)
+    complete_prompt = QUESTION_PROMPT.format(question=question, data=[{"informasi": chunk[0].page_content, "tahun publikasi informasi": chunk[0].metadata["year"]} for chunk in relevant_chunks])
 
     # Proses Generation
     response_llm = chat_openai(question=complete_prompt, model="gpt-4o-mini")

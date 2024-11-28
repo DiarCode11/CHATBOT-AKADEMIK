@@ -4,18 +4,24 @@ from dotenv import load_dotenv
 from src.state import AgentState
 import os
 
-load_dotenv()
-
-# Load embedding model
-EMBEDDING_MODEL = os.getenv('EMBEDDING_MODEL')
 
 class RetrieverAgent:
+    @staticmethod
     def similiarity_search(state: AgentState):
+        # Load embedding model
+        load_dotenv()
+
+        EMBEDDING_MODEL = os.getenv('EMBEDDING_MODEL')
+
         embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+
+        query = state["expanded_question"]
+
         try:
-            db = FAISS.load_local("vector_db", embeddings, allow_dangerous_deserialization=True)
+            vector_db_path = os.path.join(os.path.dirname(__file__), "..", "..", "vector_db")
+            db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
         
-            relevant_response = db.similarity_search_with_relevance_scores(state["expanded_question"], k=10)
+            relevant_response = db.similarity_search_with_relevance_scores(query, k=10)
 
         except Exception as e:
             print("Vector database not found")
@@ -31,8 +37,11 @@ class RetrieverAgent:
         for item in data_source:
             if item not in unique_data_source:
                 unique_data_source.append(item)
-
         data_source = unique_data_source
 
-        print(f"\nSumber data: {data_source}") 
-        return relevant_response
+        state["raw_context"] = [{"informasi": item[0].page_content, "tahun publikasi informasi": item[0].metadata["year"]} for item in relevant_response]
+        state["data_source"] = data_source
+
+        print("-- RETRIEVER AGENT --")
+
+        return state

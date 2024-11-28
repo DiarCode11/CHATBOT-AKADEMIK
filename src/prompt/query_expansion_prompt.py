@@ -42,5 +42,8 @@ CONTEXT_ABBREVIATIONS = {
     "UPA TIK": "UPA TIK Undiksha",
     "UPT-TIK": "UPA TIK Undiksha",
     "UPTTIK": "UPA TIK Undiksha",
-    "NIP": "Nomor Induk Pegawai (NIP)"
+    "NIP": "Nomor Induk Pegawai (NIP)",
+    "PTI": "Pendidikan Teknik Informatika (PTI)",
+    "ILKOM": "Ilmu Komputer (ILKOM)",
+    "TRPL": "Teknik Rekayasa Perangkat Lunak (TRPL)"
 }

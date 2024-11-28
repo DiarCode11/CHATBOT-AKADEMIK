@@ -1,1 +1,2 @@
 from .query_expansion_prompt import CONTEXT_ABBREVIATIONS
+from .corrective_prompt import CORRECTIVE_PROMPT
