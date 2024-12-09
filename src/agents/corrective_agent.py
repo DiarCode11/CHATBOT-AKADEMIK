@@ -9,9 +9,11 @@ class CorrectiveAgent:
 
         prompt = CORRECTIVE_PROMPT.format(question=expanded_question, data=state['raw_context'])
 
-        response = chat_openai(prompt)
+        response = chat_openai(prompt, model="gpt-4o-mini")
 
         state['cleaned_context'] = response
 
-        print("\n\n--  CORRECTIVE AGENT --")
         print(response)
+
+        print("\n\n--  CORRECTIVE AGENT --")
+        

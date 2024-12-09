@@ -21,7 +21,7 @@ class RetrieverAgent:
             vector_db_path = os.path.join(os.path.dirname(__file__), "..", "..", "vector_db")
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
         
-            relevant_response = db.similarity_search_with_relevance_scores(query, k=10)
+            relevant_response = db.similarity_search_with_relevance_scores(query, k=15)
 
         except Exception as e:
             print("Vector database not found")
@@ -29,7 +29,7 @@ class RetrieverAgent:
 
         # responses = [chunk[0].page_content for chunk in relevant_response]
         # return responses
-        print("Relevant response: ", relevant_response)
+        # print("Relevant response: ", relevant_response)
 
         data_source = [item[0].metadata['description'] for item in relevant_response]
 

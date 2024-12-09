@@ -8,7 +8,7 @@ load_dotenv()
 # Load embedding model
 EMBEDDING_MODEL = os.getenv('EMBEDDING_MODEL')
 
-def similiarity_search(query: str, k=15):
+def similiarity_search(query: str, k=10):
     embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
     try:
@@ -22,7 +22,7 @@ def similiarity_search(query: str, k=15):
 
     # responses = [chunk[0].page_content for chunk in relevant_response]
     # return responses
-    print("Relevant response: ", relevant_response)
+    # print("Relevant response: ", relevant_response)
 
     print(f"\nSumber data: {[item[0].metadata['description'] for item in relevant_response]}") 
     return relevant_response

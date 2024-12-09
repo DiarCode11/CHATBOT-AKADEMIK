@@ -22,7 +22,7 @@ def build_graph(question):
 
     print(result)
 
-build_graph("berapa nip ketut resika arthana")
+build_graph("how can i join Undiksha")
 
     
 

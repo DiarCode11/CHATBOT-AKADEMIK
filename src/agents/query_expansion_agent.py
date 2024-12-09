@@ -72,6 +72,10 @@ class QueryExpansionAgent:
 
         state['expanded_question'] = expanded_question
 
+        print("Original question: ", question)
+        print("Expanded question: ", expanded_question)
+
+
         print("--  QUERY EXPANSION AGENT --")
 
         return state

@@ -19,6 +19,9 @@ def create_response(question: str):
     return response_llm
 
 
-if __name__ == "__main__":
-    question = "berapa nip hendra suputra"
-    create_response(question)
+# if __name__ == "__main__":
+#     question = "berapa nip hendra suputra"
+#     create_response(question)
+
+# data = create_response("siapa rektor undiksha")
+# print(data)

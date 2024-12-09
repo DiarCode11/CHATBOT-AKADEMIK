@@ -1,5 +1,5 @@
 .env
-akasha_venv/
+akasha_env/
 vector_db/
 __pycache__/
 data_csv/
