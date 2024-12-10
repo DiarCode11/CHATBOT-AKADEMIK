@@ -76,7 +76,7 @@ class QueryExpansionAgent:
         print("Expanded question: ", expanded_question)
 
 
-        print("--  QUERY EXPANSION AGENT --")
+        print("--  QUERY EXPANSION AGENT --\n\n")
 
         return state
 

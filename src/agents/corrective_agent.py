@@ -15,5 +15,5 @@ class CorrectiveAgent:
 
         print(response)
 
-        print("\n\n--  CORRECTIVE AGENT --")
+        print("--  CORRECTIVE AGENT --\n\n")
         

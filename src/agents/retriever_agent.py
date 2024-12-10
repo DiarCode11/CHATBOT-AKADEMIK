@@ -22,6 +22,7 @@ class RetrieverAgent:
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
         
             relevant_response = db.similarity_search_with_relevance_scores(query, k=15)
+            print("Relevant response: ", relevant_response)
 
         except Exception as e:
             print("Vector database not found")
@@ -42,6 +43,6 @@ class RetrieverAgent:
         state["raw_context"] = [{"informasi": item[0].page_content, "tahun publikasi informasi": item[0].metadata["year"]} for item in relevant_response]
         state["data_source"] = data_source
 
-        print("-- RETRIEVER AGENT --")
+        print("-- RETRIEVER AGENT --\n\n")
 
         return state
