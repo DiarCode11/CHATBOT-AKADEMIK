@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit
-from main import create_response
+from graph import build_graph
 from flask_cors import CORS
 
 # Inisialisasi Flask dan Flask-SocketIO
@@ -50,7 +50,7 @@ def api():
         query = data["query"]
 
         print(f"Ini query pengguna: {query}")
-        response = create_response(query)
+        response = build_graph(query)
 
         # Membuat respons yang akan dikirim balik ke klien
         response = {
@@ -64,4 +64,5 @@ def api():
 
 
 if __name__ == "__main__":
+    print("Server berjalan di http://localhost:5000")
     socketio.run(app, host="0.0.0.0", port=5000)
