@@ -20,7 +20,9 @@ def build_graph(question):
     graph = workflow.compile()
     result = graph.invoke({"question": question})
 
-    print(result)
+    print(result["final_answer"])
+
+    return result["final_answer"]
 
 build_graph("apa saja fakultas di undiksha")
 

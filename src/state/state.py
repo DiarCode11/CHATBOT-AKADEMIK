@@ -6,4 +6,4 @@ class AgentState(TypedDict):
     expanded_question : Optional[str]= None
     raw_context : Optional[str]= None
     cleaned_context : Optional[str]= None
-    answer : Optional[str]= None
+    final_answer : Optional[str]= None
