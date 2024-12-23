@@ -1,7 +1,11 @@
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit
-from graph import build_graph
 from flask_cors import CORS
+from flasgger import Swagger
+from graph import build_graph
 
 # Inisialisasi Flask dan Flask-SocketIO
 app = Flask(__name__)
@@ -9,16 +13,18 @@ app = Flask(__name__)
 # Menambahkan CORS untuk rute HTTP
 CORS(app)
 
+# Menambahkan Swagger
+swagger = Swagger(app)
+
 socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 
-
 clients = []
+
 @socketio.on('connect', namespace='/')
 def handle_connect():
-    print("\nKlien terhubung.")
     clients.append(request.remote_addr)
-    print("Jumlah client terhubung (unique): ", len(set(clients)))
-    print("IP client terhubung: ", str(clients))
+    print(f"\n{len(clients)} Klien unik terhubung.")
+    print(f"IP client terhubung: {str(clients)}")
 
     emit('message', {'data': 'Selamat datang! Anda terhubung dengan WebSocket.'})
 
@@ -29,40 +35,62 @@ def handle_disconnect():
     clients.remove(request.remote_addr)
     print("Jumlah client terhubung (unique): ", len(set(clients)))
     print("IP client terhubung: ", str(clients))
-    
 
-# Rute HTTP untuk menguji koneksi (POST)
-@app.route("/")
-def home():
-    return jsonify({"message": "Berhasil terhubung", "status": "success"}), 200
+@socketio.on('send_message')
+def handle_message(data):
+    socket_id = request.sid
+    # Menangkap teks yang dikirimkan oleh klien
+    print(f"ID klien: {socket_id}")
+    print(f"Pesan dari klien: {data['message']}")
+    query = data['message']  # Mengambil teks pesan yang dikirimkan
 
-@app.route("/api", methods=["POST"])
-def api():
-    # Memastikan bahwa data yang diterima adalah JSON
-    if request.is_json:
-        # Mengambil data JSON yang dikirimkan oleh klien
-        data = request.get_json()
+    full_response = build_graph(query)
 
-        # Menampilkan data JSON
-        print(data)
+    length_chars: int = 4
 
-        # Memproses data JSON
-        query = data["query"]
+    for i in range(0, len(full_response), length_chars):
+        chunk = full_response[i:i+length_chars]
+        emit('response', {'data': chunk}, room=socket_id)
+        eventlet.sleep(0.08)
 
-        print(f"Ini query pengguna: {query}")
-        response = build_graph(query)
+# Menambahkan endpoint untuk dokumentasi Swagger
+@app.route('/api/test', methods=['POST'])
+def test_endpoint():
+    """
+    Endpoint untuk chat
+    ---
+    tags:
+      - Uji Response Akasha
+    parameters:
+      - name: input
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Siapa rektor undiksha"
+    responses:
+      200:
+        description: Respons berhasil
+        content:
+          application/json:
+            schema:
+              type: object
+    """
+    data = request.json
 
-        # Membuat respons yang akan dikirim balik ke klien
-        response = {
-            "response": response,
-            "role": "assistant",
-            "status": "success"
-        }
-        return jsonify(response), 200  # Mengembalikan respons dalam format JSON dengan status 200 OK
-    else:
-        return jsonify({"error": "Invalid JSON format"}), 400  # Jika format data bukan JSON, kirim error 400
+    if not 'message' in data or data['message'] is None:
+        return jsonify({'error': 'Parameter message tidak ditemukan'}), 400
 
+    try:
+        message = data['message']
+        response = build_graph(message)
+        return jsonify({'response': response}), 200
+
+    except Exception as e:
+        return jsonify({'error': 'Kesalahan internal server'}), 500
 
 if __name__ == "__main__":
-    print("Server berjalan di http://localhost:5000")
-    socketio.run(app, host="0.0.0.0", port=5000)
+    socketio.run(app, host="0.0.0.0", port=5000, use_reloader=True)
