@@ -26,7 +26,7 @@ def build_graph(question: str):
     
 
 
-# build_graph("kapan jadwal menyusun krs 2025")
+build_graph("kapan jadwal menyusun krs 2025")
 
 
         

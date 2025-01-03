@@ -14,7 +14,6 @@ CONTEXT_ABBREVIATIONS = {
     "KOORPRODI": "Koordinator Program Studi (Koorprodi)",
     "SNBP": "Seleksi Nasional Berbasis Prestasi (SNBP)",
     "SNBT": "Seleksi Nasional Berbasis Tes (SNBT)",
-    "SMBJM": "Seleksi Mahasiswa Baru Jalur Mandiri (SMBJM)",
     "UKT": "Uang Kuliah Tunggal (UKT)",
     "KIP K": "Kartu Indonesia Pintar Kuliah Undiksha (KIP-K)",
     "KIP-K": "Kartu Indonesia Pintar Kuliah Undiksha (KIP-K)",
