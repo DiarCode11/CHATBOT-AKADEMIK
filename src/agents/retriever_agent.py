@@ -18,7 +18,7 @@ class RetrieverAgent:
         query = state["expanded_question"]
 
         try:
-            vector_db_path = os.path.join(os.path.dirname(__file__), "..", "..", "vector_db")
+            vector_db_path = os.path.join(os.path.dirname(__file__), "..", "..", "akasha_db")
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
         
             relevant_response = db.similarity_search_with_relevance_scores(query, k=15)
@@ -28,20 +28,22 @@ class RetrieverAgent:
             print("Vector database not found")
             print(e)
 
+        state["raw_context"] = relevant_response
+
         # responses = [chunk[0].page_content for chunk in relevant_response]
         # return responses
         # print("Relevant response: ", relevant_response)
 
-        data_source = [item[0].metadata['description'] for item in relevant_response]
+        # data_source = [item[0].metadata['description'] for item in relevant_response]
 
-        unique_data_source = []
-        for item in data_source:
-            if item not in unique_data_source:
-                unique_data_source.append(item)
-        data_source = unique_data_source
+        # unique_data_source = []
+        # for item in data_source:
+        #     if item not in unique_data_source:
+        #         unique_data_source.append(item)
+        # data_source = unique_data_source
 
-        state["raw_context"] = [{"informasi": item[0].page_content, "tahun publikasi informasi": item[0].metadata["year"]} for item in relevant_response]
-        state["data_source"] = data_source
+        # state["raw_context"] = [{"informasi": item[0].page_content, "tahun publikasi informasi": item[0].metadata["year"]} for item in relevant_response]
+        # state["data_source"] = data_source
 
         print("-- RETRIEVER AGENT --\n\n")
 
