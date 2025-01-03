@@ -2,7 +2,7 @@ from langgraph.graph import END, START, StateGraph
 from src.state import AgentState
 from src.agents import QueryExpansionAgent, RetrieverAgent, CorrectiveAgent, GeneratorAgent
 
-def build_graph(question):
+def build_graph(question: str):
     workflow = StateGraph(AgentState)
 
     # Add nodes
@@ -23,8 +23,13 @@ def build_graph(question):
     print(result["final_answer"])
 
     return result["final_answer"]
+    
 
-build_graph("apa saja fakultas di undiksha")
+
+# build_graph("apa saja jurusan di undiksha")
+
+
+        
 
     
 

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Client</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Example</h1>
+
+    <div>
+        <h3>Send Message</h3>
+        <input type="text" id="messageInput" placeholder="Type your message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <div>
+        <h3>Response from Server (Streaming)</h3>
+        <div id="streamingResponse"></div>
+    </div>
+
+    <div>
+        <h3>API Call</h3>
+        <input type="text" id="queryInput" placeholder="Enter your query for API">
+        <button onclick="callApi()">Call API</button>
+        <div id="apiResponse"></div>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:5000');  // Connect to the Flask SocketIO server
+
+        // Handle the WebSocket connection
+        socket.on('connect', () => {
+            console.log("Connected to WebSocket");
+            alert('Connected to WebSocket!');
+        });
+
+        // Handle incoming streaming response from server
+        socket.on('streaming_response', (data) => {
+            const responseContainer = document.getElementById('streamingResponse');
+            responseContainer.innerHTML += `<p>${data.data}</p>`;
+        });
+
+        // Handle WebSocket message event
+        socket.on('message', (data) => {
+            console.log(data.data);
+            alert(data.data);
+        });
+
+        // Handle WebSocket disconnect
+        socket.on('disconnect', () => {
+            console.log('Disconnected from WebSocket');
+        });
+
+        // Function to send a message to the server via WebSocket
+        function sendMessage() {
+            const message = document.getElementById('messageInput').value;
+            if (message) {
+                socket.emit('send_message', { message });
+                document.getElementById('messageInput').value = '';  // Clear the input field
+            } else {
+                alert('Please enter a message!');
+            }
+        }
+
+        // Function to make an API POST request
+        function callApi() {
+            const query = document.getElementById('queryInput').value;
+            if (query) {
+                fetch('http://localhost:5000/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    const apiResponseContainer = document.getElementById('apiResponse');
+                    apiResponseContainer.innerHTML = `<p>Response: ${JSON.stringify(data.response)}</p>`;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            } else {
+                alert('Please enter a query!');
+            }
+        }
+    </script>
+</body>
+</html>
