@@ -22,4 +22,4 @@ chunks = text_splitter.split_documents(documents)
 EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=EMBEDDING_MODEL)
 
 vector_db = FAISS.from_documents(chunks, EMBEDDER)
-vector_db.save_local("akasha_db")
+vector_db.save_local("src/agents/akasha_db")

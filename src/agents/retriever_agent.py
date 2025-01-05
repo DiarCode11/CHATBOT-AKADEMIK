@@ -18,10 +18,19 @@ class RetrieverAgent:
         query = state["expanded_question"]
 
         try:
-            vector_db_path = os.path.join(os.path.dirname(__file__), "..", "..", "akasha_db")
+            vector_db_path = "d:/SKRIPSI/CHATBOT AKADEMIK/src/db/akasha_db"
+
+            print("posisi error ", vector_db_path)
+            
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
+
+            print("posisi error 2")
+            print()
         
-            relevant_response = db.similarity_search_with_relevance_scores(query, k=15)
+            relevant_response = db.similarity_search(query, k=3)
+
+            print("posisi error 2")
+
             print("Relevant response: ", relevant_response)
 
         except Exception as e:
@@ -29,21 +38,6 @@ class RetrieverAgent:
             print(e)
 
         state["raw_context"] = relevant_response
-
-        # responses = [chunk[0].page_content for chunk in relevant_response]
-        # return responses
-        # print("Relevant response: ", relevant_response)
-
-        # data_source = [item[0].metadata['description'] for item in relevant_response]
-
-        # unique_data_source = []
-        # for item in data_source:
-        #     if item not in unique_data_source:
-        #         unique_data_source.append(item)
-        # data_source = unique_data_source
-
-        # state["raw_context"] = [{"informasi": item[0].page_content, "tahun publikasi informasi": item[0].metadata["year"]} for item in relevant_response]
-        # state["data_source"] = data_source
 
         print("-- RETRIEVER AGENT --\n\n")
 
