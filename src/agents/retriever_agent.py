@@ -19,17 +19,10 @@ class RetrieverAgent:
 
         try:
             vector_db_path = "d:/SKRIPSI/CHATBOT AKADEMIK/src/db/akasha_db"
-
-            print("posisi error ", vector_db_path)
             
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
-
-            print("posisi error 2")
-            print()
         
-            relevant_response = db.similarity_search(query, k=3)
-
-            print("posisi error 2")
+            relevant_response = db.similarity_search(query, k=10)
 
             print("Relevant response: ", relevant_response)
 
