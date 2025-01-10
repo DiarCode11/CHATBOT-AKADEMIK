@@ -26,7 +26,7 @@ def build_graph(question: str):
     
 
 
-build_graph("apa saja tahapan pada saat proposal")
+# build_graph("siapa yang menentukan ")
 
 
         

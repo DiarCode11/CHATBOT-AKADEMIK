@@ -22,7 +22,7 @@ class RetrieverAgent:
             
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
         
-            relevant_response = db.similarity_search(query, k=10)
+            relevant_response = db.similarity_search(query, k=15)
 
             print("Relevant response: ", relevant_response)
 
