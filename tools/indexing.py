@@ -5,8 +5,10 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
+from datetime import datetime
 import pandas as pd
 import os
+import uuid
 
 load_dotenv()
 
@@ -61,7 +63,7 @@ def load_documents(excel_path: str):
     docs = []
 
     for index, row in df.iterrows():
-        filename = row["filename"]
+        filename = row["file"]
         filepath = f"data/{filename}"
         extracted_text = extract_text_from_pdf(filepath=filepath, year=row["year"])
         docs.append(extracted_text)
@@ -69,6 +71,32 @@ def load_documents(excel_path: str):
     print("2. File berhasil dimuat")
 
     return docs
+
+def get_pdf_list():
+    pdf_list = os.listdir("data")
+
+    frame = {
+        "id": [],
+        "file": [],
+        "filetype": [],
+        "year": [],
+        "created_at": [],
+        "updated_at": []
+    }
+
+    for pdf in pdf_list:
+        if pdf.endswith(".pdf"):
+            print("Data ditambahkan: ", pdf)
+            unique_id = uuid.uuid4()
+            frame["id"].append(str(unique_id))
+            frame["file"].append(pdf)
+            frame["filetype"].append("File Umum")
+            frame["year"].append("2024")
+            frame["created_at"].append(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            frame["updated_at"].append(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+    df = pd.DataFrame(frame)
+    df.to_csv("dataset/pdf_list.csv", index=False)
 
 def create_db(excel_path: str, dest_path: str):
     """
@@ -124,4 +152,5 @@ def create_db_with_langchain():
     vector_db.save_local("src/db/akasha_db")
 
 if __name__ == "__main__":
-    create_db_with_langchain()
+    # create_db_with_langchain()
+    get_pdf_list()
