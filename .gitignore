@@ -5,3 +5,5 @@ vector_db/
 __pycache__/
 data_csv/
 data/
+upload_docs/
+dataset/
