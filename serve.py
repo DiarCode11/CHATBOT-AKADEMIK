@@ -11,6 +11,7 @@ from werkzeug.utils import secure_filename
 from tools.api_tools import check_is_allowed, validate_file, validate_json
 from datetime import datetime
 import pandas as pd
+from tools.indexing_langchain import create_db_with_langchain
 import os
 import jwt
 import uuid
@@ -145,7 +146,7 @@ def store():
     }
 
      # Validasi apakah data JSON lengkap
-    json_error, null_keys = validate_json(data, ['file', 'filetype', 'year'])
+    json_error, null_keys = validate_json(data, ['file', 'year'])
     print("Isi error json: ", json_error)
     if json_error:
       return jsonify({"status": "failed", "message": json_error, "null_keys": null_keys}), 400
@@ -161,18 +162,23 @@ def store():
       "file": data["file"],
       "filetype": data["filetype"],
       "year": int(data["year"]),
-      "created_at": str(datetime.now()),
-      "updated_at": str(datetime.now())
+      "created_at": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+      "updated_at": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     }
 
     # Tambahkan data ke baris baru
     df.loc[len(df)] = new_data
+
+    # Simpan file
+    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Buat folder jika belum ada
+    file.save(upload_path)
   
     # Simpan kembali ke file CSV
     df.to_csv("dataset/pdf_list.csv", index=False)
 
     # Response dengan JSON
-    return jsonify({"status": "success", "message": "Data berhasil ditambahkan"}), 200
+    return jsonify({"status": "success", "message": "Data berhasil ditambahkan"}), 201
 
 @app.route('/api/dataset-management/<id>', methods=['PUT'])
 def update(id):
@@ -291,20 +297,44 @@ def delete(id):
   
 @app.route('/api/generate-db', methods=['POST'])
 def generate_vectordb():
-  valid_embedder = ["text-embedding-3-small", "text-embedding-3-large"]
-  valid_llm = ["gpt-4", "gpt-4o-mini", "gpt-3.5"]
+  # Daftar parameter yang diizinkan
+  allowed_params = {'chunk_size', 'chunk_overlap'}
+  
+  # Ambil kunci parameter dari form-data
+  received_params = set(request.form.keys())
+
+  # Ambil JSON dari form-data
+  if 'chunk_size' not in request.form or 'chunk_overlap' not in request.form:
+    return jsonify({"status": "failed", "message": "Parameter chunk_size dan chunk_overlap harus ada"}), 400
+  
+  # Periksa apakah parameter yang diterima sesuai dengan yang diizinkan
+  if not allowed_params.issubset(received_params) or len(received_params - allowed_params) > 0:
+    return jsonify({"status": "failed", "message": "Hanya parameter 'chunk_size' dan 'chunk_overlap' yang diperbolehkan"}), 400
+
+  
+  if not request.form.get("chunk_size") or not request.form.get("chunk_overlap"):
+    return jsonify({"status": "failed", "message": "Parameter chunk_size atau chunk_overlap tidak boleh kosong"}), 400
 
   data = {
-     "embedder": request.form.get("embedder"),
-     "llm": request.form.get("llm")
+     "chunk_size": request.form.get("chunk_size"),
+     "chunk_overlap": request.form.get("chunk_overlap")
   }
 
-  if data["embedder"] not in valid_embedder:
-     return jsonify({"status": "failed", "message":"Embedder tidak valid"})
-  
-  if data["llm"] not in valid_llm:
-     return jsonify({"status": "failed", "message":"LLM tidak valid"})
-  
+  try:
+    chunk_size = int(data['chunk_size'])
+    chunk_overlap = int(data['chunk_overlap'])
+
+    if chunk_size <= 0 or chunk_overlap <= 0:
+      return jsonify({"status": "failed", "message": "Chunk size atau chunk overlap harus lebih besar dari 0"}), 400
+    
+    try:
+      create_db_with_langchain(chunk_size, chunk_overlap)
+      return jsonify({"status": "success", "message": "Database berhasil dibuat"}), 200
+    except Exception as e:
+      return jsonify({"status": "failed", "message": "Kesalahan internal server"}), 500
+    
+  except Exception as e:
+    return jsonify({"status": "failed", "message": "Chunk size atau chunk overlap harus angka"}), 400
 
 # Menambahkan endpoint untuk dokumentasi Swagger
 @app.route('/api/test', methods=['POST'])
