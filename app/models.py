@@ -102,5 +102,7 @@ class Conversation(db.Model):
     question = db.Column(db.Text, nullable=False)
     response = db.Column(db.Text, nullable=False)
     response_reaction = db.Column(db.Enum(Reaction), nullable=False, default=Reaction.null)
+
+
     
 

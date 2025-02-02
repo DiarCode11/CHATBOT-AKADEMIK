@@ -9,3 +9,4 @@ upload_docs/
 dataset/
 test.py
 migrations/
+flask_session

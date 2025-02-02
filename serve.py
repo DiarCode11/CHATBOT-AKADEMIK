@@ -24,7 +24,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 ALLOWED_EXTENSIONS = {'pdf'}
 
 # Menambahkan CORS untuk rute HTTP
-CORS(app)
+CORS(app, origins=["http://192.168.242.52:3000"], methods=["GET", "POST", "OPTIONS"])
 
 # Menambahkan Swagger
 swagger = Swagger(app)
@@ -68,8 +68,8 @@ def login():
 @socketio.on('connect', namespace='/')
 def handle_connect():
     clients.append(request.remote_addr)
-    print(f"\n{len(clients)} Klien unik terhubung.")
-    print(f"IP client terhubung: {str(clients)}")
+    print(f"\n{len(set(clients))} Klien unik terhubung.")
+    print(f"IP client terhubung: {str(set(clients))}")
 
     token = generate_token()
 
