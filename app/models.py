@@ -29,9 +29,9 @@ class PdfDatasets(db.Model):
     __tablename__ = 'tbl_pdf_dataset'
 
     id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
-    filename = db.Column(db.String(100), nullable=False)
+    filename = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text, nullable=False)
     year = db.Column(db.String(100), nullable=False)
-    extracted_text = db.Column(db.String(100), nullable=False)
     created_by_id = db.Column(db.String(100), db.ForeignKey('tbl_users.id'), nullable=False)
     created_by = db.relationship('Users', backref='pdf_datasets', lazy=True)
     created_at = db.Column(db.DateTime, nullable=False)
@@ -39,6 +39,16 @@ class PdfDatasets(db.Model):
 
     def __repr__(self):
         return f"PdfDataset('{self.filename}', '{self.year}')"
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'filename': self.filename,
+            'description': self.description,
+            'year': self.year,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
 
 class UrlDatasets(db.Model):
     __tablename__ = 'tbl_url_dataset'
@@ -46,6 +56,8 @@ class UrlDatasets(db.Model):
     id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
     url = db.Column(db.String(100), nullable=False)
     title = db.Column(db.String(100), nullable=False)
+    year = db.Column(db.String(4), nullable=False)
+    extracted_text = db.Column(db.Text, nullable=False)
     created_by_id = db.Column(db.String(100), db.ForeignKey('tbl_users.id'), nullable=False)
     created_by = db.relationship('Users', backref='url_datasets', lazy=True)
     created_at = db.Column(db.DateTime, nullable=False)
@@ -53,6 +65,17 @@ class UrlDatasets(db.Model):
 
     def __repr__(self):
         return f"UrlDataset('{self.title}', '{self.url}')"
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'url': self.url,
+            'title': self.title,
+            'year': self.year,
+            'extracted_text': self.extracted_text,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
 
 class Chunks(db.Model):
     __tablename__ = "log_chunks"

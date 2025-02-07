@@ -4,6 +4,7 @@ monkey.patch_all()
 from flask import Flask, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
+from flask_jwt_extended.exceptions import NoAuthorizationError, JWTDecodeError
 from flask_migrate import Migrate
 from flask_socketio import SocketIO
 from flask_cors import CORS
@@ -61,6 +62,12 @@ def create_app():
     socketio.init_app(app)
     jwt.init_app(app)
 
+    @app.errorhandler(NoAuthorizationError)
+    @app.errorhandler(JWTDecodeError)
+    def handle_auth_error(e):
+        print("terdeteksi akses tidak valid")
+        return jsonify({"message": "Akses tidak valid"}), 401
+
     # @jwt.unauthorized_loader
     # def unauthorized_callback(callback):
     #     return jsonify({"message": "Unauthorized"}), 401
@@ -69,11 +76,17 @@ def create_app():
     migrate = Migrate(app, db)
 
     # Impor blueprint setelah inisialisasi db
-    from .controller.user_controllers import user_controller
+    from .controllers.user_controller import user_controller
     app.register_blueprint(user_controller, url_prefix='/users')
 
+    from .controllers.pdf_controller import pdf_controller
+    app.register_blueprint(pdf_controller, url_prefix='/datasets')
+
+    from .controllers.link_controller import link_controller
+    app.register_blueprint(link_controller, url_prefix='/url-datasets')
+    
     #  # Impor dan inisialisasi SocketIO dari file lain
-    from .controller.socket_controller import init_socket_event
+    from .controllers.socket_controller import init_socket_event
     init_socket_event(socketio)
 
     # Impor models setelah db diinisialisasi untuk mencegah circular import

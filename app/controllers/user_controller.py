@@ -2,21 +2,12 @@ from flask import Blueprint, request, jsonify, session, make_response
 from ..models import Users, db, UserRole
 from argon2 import PasswordHasher
 from email_validator import validate_email, EmailNotValidError
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, set_access_cookies, JWTManager, unset_jwt_cookies
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_access_cookies, unset_jwt_cookies
 from functools import wraps
+from ..utils.authorization import role_required
 
 ph = PasswordHasher()
 user_controller = Blueprint('user', __name__)
-def role_required(role):
-    def wrapper(fn):
-        @wraps(fn)
-        def decorator_view(*args, **kwargs):
-            claims = get_jwt_identity()
-            if claims['role'] != role:
-                return jsonify({'message': 'Anda tidak memiliki izin untuk mengakses halaman ini'}), 403
-            return fn(*args, **kwargs)
-        return decorator_view
-    return wrapper
 
 # Endpoint untuk menampilkan semua user
 @user_controller.route('/', methods=['GET'])
@@ -25,6 +16,12 @@ def role_required(role):
 def get_user():
     users = Users.query.all()
     return jsonify([user.username for user in users])
+
+@user_controller.route('/admin', methods=['POST'])
+@jwt_required()
+@role_required('admin')
+def check_admin():
+    return jsonify({'message': 'Anda terautentikasi sebagai admin', 'status': True}), 200
 
 # Endpoint untuk menambahkan user
 @user_controller.route('/register', methods=['POST'])
@@ -81,7 +78,7 @@ def add_user():
             access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name}, expires_delta=False)
 
             # Kirimkan JSON data user
-            response = jsonify({'message': 'Daftar berhasil', 'user': {'username': user.username, 'email': user.email, 'role': user.role.name}})
+            response = jsonify({'message': 'Daftar berhasil', 'user': {'username': user.username, 'email': user.email, 'role': user.role.name}, 'auth': True})
 
             # Set access token ke cookies
             set_access_cookies(response, access_token)
@@ -131,7 +128,7 @@ def login():
         access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name}, expires_delta=False)
 
         # Kirimkan JSON data user
-        response = jsonify({'message': 'Login berhasil', 'user': {'username': user.username, 'email': user.email, 'role': user.role.name}})
+        response = jsonify({'message': 'Login berhasil', 'user': {'username': user.username, 'email': user.email, 'role': user.role.name}, 'auth': True})
 
         # Set access token ke cookies
         set_access_cookies(response, access_token)
@@ -154,7 +151,7 @@ def logout():
     session.clear()
     
     # Menghapus access token dari cookies
-    response = make_response(jsonify({'message': 'Logout berhasil'}))
+    response = make_response(jsonify({'message': 'Logout berhasil', 'auth': False}))
     unset_jwt_cookies(response)
 
     # Menghapus cookie dengan mengatur waktu kedaluwarsa ke waktu yang sudah lewat
