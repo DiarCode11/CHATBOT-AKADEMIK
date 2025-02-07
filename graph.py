@@ -26,7 +26,7 @@ def build_graph(question: str):
     
 
 
-# build_graph("siapa yang menentukan ")
+# build_graph("siapa rektor undiksha")
 
 
         

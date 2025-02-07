@@ -5,8 +5,10 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
+from datetime import datetime
 import pandas as pd
 import os
+import uuid
 
 load_dotenv()
 
@@ -43,7 +45,7 @@ def extract_text_from_pdf(filepath: str, year: str):
     
     return doc
 
-def load_documents(excel_path: str):
+def load_documents(csv_path: str):
     """
     Loads documents from an Excel file and extracts their text content.
 
@@ -56,13 +58,13 @@ def load_documents(excel_path: str):
               associated metadata from the PDF files specified in the Excel sheet.
     """
 
-    df = pd.read_excel(excel_path, engine="openpyxl")
+    df = pd.read_csv(csv_path)
 
     docs = []
 
     for index, row in df.iterrows():
-        filename = row["filename"]
-        filepath = f"data/{filename}"
+        filename = row["file"]
+        filepath = f"upload_docs/{filename}"
         extracted_text = extract_text_from_pdf(filepath=filepath, year=row["year"])
         docs.append(extracted_text)
 
@@ -70,12 +72,38 @@ def load_documents(excel_path: str):
 
     return docs
 
-def create_db(excel_path: str, dest_path: str):
+def get_pdf_list():
+    pdf_list = os.listdir("data")
+
+    frame = {
+        "id": [],
+        "file": [],
+        "filetype": [],
+        "year": [],
+        "created_at": [],
+        "updated_at": []
+    }
+
+    for pdf in pdf_list:
+        if pdf.endswith(".pdf"):
+            print("Data ditambahkan: ", pdf)
+            unique_id = uuid.uuid4()
+            frame["id"].append(str(unique_id))
+            frame["file"].append(pdf)
+            frame["filetype"].append("File Umum")
+            frame["year"].append("2024")
+            frame["created_at"].append(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            frame["updated_at"].append(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+    df = pd.DataFrame(frame)
+    df.to_csv("dataset/pdf_list.csv", index=False)
+
+def create_db(csv_path: str, dest_path: str):
     """
     Creates a vector database from documents loaded from an Excel file.
 
     Args:
-        excel_path (str): The path to the Excel file containing document metadata,
+        csv_path (str): The path to the CSV file containing document metadata,
                           including filenames and years.
         dest_path (str): The path where the vector database will be saved.
 
@@ -88,10 +116,10 @@ def create_db(excel_path: str, dest_path: str):
 
     """
     
-    documents = load_documents(excel_path)
+    documents = load_documents(csv_path)
 
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
+        chunk_size=600,
         chunk_overlap=200,
         separators=["\n\n"]
     )
@@ -106,22 +134,44 @@ def create_db(excel_path: str, dest_path: str):
     print("3. Database berhasil di buat")
 
 def create_db_with_langchain():
-    loader = PyPDFDirectoryLoader(path="data")
+    loader = PyPDFDirectoryLoader(path="upload_docs")
     documents = loader.load()
-    print(documents)
+
+    df = pd.read_csv("dataset/pdf_list.csv")
+
+    new_docs = []
+    
+    # Tambahkan metadata year
+    for docs in documents:
+        filepath = docs.metadata['source']
+        filename = filepath.replace("upload_docs\\", "")
+        row_selected = df.loc[df['file'] == filename]
+        if not row_selected.empty:
+            docs.metadata['year'] = row_selected['year'].values[0]
+            new_docs.append(docs)
+        else:
+            docs.metadata['year'] = "2024"
+            new_docs.append(docs)
+    
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=400,
         separators=["\n\n"]
     )
 
-    chunks = text_splitter.split_documents(documents)
+    chunks = text_splitter.split_documents(new_docs)
 
     print(len(chunks))
     EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=EMBEDDING_MODEL)
 
     vector_db = FAISS.from_documents(chunks, EMBEDDER)
-    vector_db.save_local("src/db/akasha_db")
+
+    if not os.path.exists("src/db"):
+        os.makedirs("src/db")
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    vector_db.save_local(f"src/db/db_{timestamp}")
 
 if __name__ == "__main__":
-    create_db_with_langchain()
+    create_db(csv_path="dataset/pdf_list.csv", dest_path="src/db/akasha_db2")

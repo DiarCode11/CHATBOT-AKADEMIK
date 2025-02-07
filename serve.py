@@ -7,16 +7,24 @@ from flask_cors import CORS
 from flasgger import Swagger
 from graph import build_graph
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
+from tools.api_tools import check_is_allowed, validate_file, validate_json
+from datetime import datetime
+import pandas as pd
+from tools.indexing_langchain import create_db_with_langchain
 import os
 import jwt
+import uuid
 
 load_dotenv()
 # Inisialisasi Flask dan Flask-SocketIO
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'upload_docs'
 SECRET_KEY = os.getenv('SECRET_KEY')
+ALLOWED_EXTENSIONS = {'pdf'}
 
 # Menambahkan CORS untuk rute HTTP
-CORS(app)
+CORS(app, origins=["http://192.168.242.52:3000"], methods=["GET", "POST", "OPTIONS"])
 
 # Menambahkan Swagger
 swagger = Swagger(app)
@@ -60,8 +68,8 @@ def login():
 @socketio.on('connect', namespace='/')
 def handle_connect():
     clients.append(request.remote_addr)
-    print(f"\n{len(clients)} Klien unik terhubung.")
-    print(f"IP client terhubung: {str(clients)}")
+    print(f"\n{len(set(clients))} Klien unik terhubung.")
+    print(f"IP client terhubung: {str(set(clients))}")
 
     token = generate_token()
 
@@ -91,6 +99,242 @@ def handle_message(data):
         chunk = full_response[i:i+length_chars]
         emit('response', {'data': chunk}, room=socket_id)
         eventlet.sleep(0.08)
+
+@app.route('/api/dataset-management', methods=['GET'])
+def get_dataset():
+  try:
+    df = pd.read_csv("dataset/pdf_list.csv")
+
+    df_list = []
+
+    for index, row in df.iterrows():
+      df_list.append(row.to_dict())
+
+    return jsonify({"status": "success", "data": df_list}), 200
+  
+  except Exception as e:
+    return jsonify({"status": "failed", "data": None}), 400
+      
+@app.route('/api/dataset-management', methods=['POST'])
+def store():
+    # Baca data CSV
+    try:
+      dtype = {
+          "id": "string",          # ID biasanya berupa string unik
+          "file": "string",    # Nama file juga berupa string
+          "filetype": "string",    # Tipe file biasanya berupa string (contoh: "pdf", "docx")
+          "year": "int64",         # Tahun adalah angka, jadi gunakan tipe integer
+          "created_at": "string",  # Tanggal biasanya diawali sebagai string (nanti bisa diubah ke datetime)
+          "updated_at": "string"   # Sama seperti created_at, awalnya string
+      }
+      df = pd.read_csv("dataset/pdf_list.csv", dtype=dtype)
+    except FileNotFoundError:
+      return jsonify({"status": "failed", "message": "Database tidak ditemukan"}), 500
+    
+    file = request.files.get('file')
+
+    if not file:
+      return jsonify({"status": "failed", "message": "Parameter file tidak ditemukan"}), 400
+    
+    filename = secure_filename(file.filename)
+
+    # Ambil JSON dari form-data
+    data = {
+        "file": filename,
+        "filetype": request.form.get('filetype'),
+        "year": request.form.get('year')
+    }
+
+     # Validasi apakah data JSON lengkap
+    json_error, null_keys = validate_json(data, ['file', 'year'])
+    print("Isi error json: ", json_error)
+    if json_error:
+      return jsonify({"status": "failed", "message": json_error, "null_keys": null_keys}), 400
+
+    # Validasi file
+    file_error = validate_file(file)
+    if file_error:
+      return jsonify({"status": "failed", "message": file_error}), 400
+    
+    # Jika Validasi telah selesai
+    new_data = {
+      "id": str(uuid.uuid4()),
+      "file": data["file"],
+      "filetype": data["filetype"],
+      "year": int(data["year"]),
+      "created_at": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+      "updated_at": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    }
+
+    # Tambahkan data ke baris baru
+    df.loc[len(df)] = new_data
+
+    # Simpan file
+    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Buat folder jika belum ada
+    file.save(upload_path)
+  
+    # Simpan kembali ke file CSV
+    df.to_csv("dataset/pdf_list.csv", index=False)
+
+    # Response dengan JSON
+    return jsonify({"status": "success", "message": "Data berhasil ditambahkan"}), 201
+
+@app.route('/api/dataset-management/<id>', methods=['PUT'])
+def update(id):
+    # Baca data CSV
+    try:
+        dtype = {
+            "id": "string",          # ID biasanya berupa string unik
+            "file": "string",    # Nama file juga berupa string
+            "filetype": "string",    # Tipe file biasanya berupa string (contoh: "pdf", "docx")
+            "year": "int64",         # Tahun adalah angka, jadi gunakan tipe integer
+            "created_at": "string",  # Tanggal biasanya diawali sebagai string (nanti bisa diubah ke datetime)
+            "updated_at": "string"   # Sama seperti created_at, awalnya string
+        }
+        df = pd.read_csv("dataset/pdf_list.csv", dtype=dtype)
+    except FileNotFoundError:
+        return jsonify({"status": "failed", "message": "Database tidak ditemukan"}), 500
+
+    # Validasi ID
+    if id not in df['id'].values:
+        return jsonify({"status": "failed", "message": "ID tidak valid"}), 400
+
+    # Ambil data form
+    try:
+        file = request.files.get('file')
+        old_df_row = df.loc[df['id'] == id].to_dict(orient='records')[0]
+        print(old_df_row["file"])
+  
+        if not file:
+          return jsonify({"status": "failed", "message": "Parameter file tidak ditemukan"}), 400
+        
+        filename = secure_filename(file.filename)
+
+        # Ambil JSON dari form-data
+        data = {
+            "file": filename,
+            "filetype": request.form.get('filetype'),
+            "year": request.form.get('year')
+        }
+
+        print("Isi data: ", data)
+
+        # Validasi apakah data JSON lengkap
+        json_error, null_keys = validate_json(data, ['file', 'filetype', 'year'])
+        print("Isi error json: ", json_error)
+        if json_error:
+            return jsonify({"status": "failed", "message": json_error, "null_keys": null_keys}), 400
+
+        # Validasi file
+        file_error = validate_file(file)
+        if file_error:
+            return jsonify({"status": "failed", "message": file_error}), 400
+        
+        try:
+          # Perbarui data pada DataFrame
+          df.loc[df['id'] == id, 'file'] = data['file']
+          df.loc[df['id'] == id, 'filetype'] = data['filetype']
+          df.loc[df['id'] == id, 'year'] = int(data['year'])
+          df.loc[df['id'] == id, 'updated_at'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+          # Simpan kembali ke file CSV
+          df.to_csv("dataset/pdf_list.csv", index=False)
+
+          # Hapus file lama
+          os.remove(os.path.join(app.config['UPLOAD_FOLDER'], old_df_row['file']))
+
+          # Simpan file
+          upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+          os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Buat folder jika belum ada
+          file.save(upload_path)
+        except Exception as e:
+          return jsonify({"status": "failed", "message": f"format JSON salah {str(e)}"}), 400
+
+        return jsonify({"status": "success", "message": "Data berhasil diupdate"}), 200
+    except Exception as e:
+        return jsonify({"status": "failed", "message": f"Kesalahan internal server: {str(e)}"}), 500
+
+@app.route('/api/dataset-management/<id>', methods=['DELETE'])
+def delete(id):
+  # Baca data CSV
+  try:
+    dtype = {
+        "id": "string",          # ID biasanya berupa string unik
+        "file": "string",    # Nama file juga berupa string
+        "filetype": "string",    # Tipe file biasanya berupa string (contoh: "pdf", "docx")
+        "year": "int64",         # Tahun adalah angka, jadi gunakan tipe integer
+        "created_at": "string",  # Tanggal biasanya diawali sebagai string (nanti bisa diubah ke datetime)
+        "updated_at": "string"   # Sama seperti created_at, awalnya string
+    }
+
+    df = pd.read_csv("dataset/pdf_list.csv", dtype=dtype)
+  except FileNotFoundError:
+    return jsonify({"status": "failed", "message": "Database tidak ditemukan"}), 500
+  
+  # Validasi ID
+  if id not in df['id'].values:
+    return jsonify({"status": "failed", "message": "ID tidak valid"}), 400
+  
+  try:
+    old_df_row = df.loc[df['id'] == id].to_dict(orient='records')[0]
+    # Hapus file dan baris dengan parameter id
+    df = df[df["id"] != id]
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], old_df_row['file'])
+
+    if os.path.exists(file_path):
+        # Hapus file jika ada
+        os.remove(file_path)
+
+    # Simpan kembali ke file CSV
+    df.to_csv("dataset/pdf_list.csv", index=False)
+
+    # Response dengan JSON
+    return jsonify({"status": "success", "message": "Data berhasil dihapus"}), 200
+  
+  except Exception as e:
+    return jsonify({"status": "failed", "message": "Kesalahan internal server"}), 500
+  
+@app.route('/api/generate-db', methods=['POST'])
+def generate_vectordb():
+  # Daftar parameter yang diizinkan
+  allowed_params = {'chunk_size', 'chunk_overlap'}
+  
+  # Ambil kunci parameter dari form-data
+  received_params = set(request.form.keys())
+
+  # Ambil JSON dari form-data
+  if 'chunk_size' not in request.form or 'chunk_overlap' not in request.form:
+    return jsonify({"status": "failed", "message": "Parameter chunk_size dan chunk_overlap harus ada"}), 400
+  
+  # Periksa apakah parameter yang diterima sesuai dengan yang diizinkan
+  if not allowed_params.issubset(received_params) or len(received_params - allowed_params) > 0:
+    return jsonify({"status": "failed", "message": "Hanya parameter 'chunk_size' dan 'chunk_overlap' yang diperbolehkan"}), 400
+
+  
+  if not request.form.get("chunk_size") or not request.form.get("chunk_overlap"):
+    return jsonify({"status": "failed", "message": "Parameter chunk_size atau chunk_overlap tidak boleh kosong"}), 400
+
+  data = {
+     "chunk_size": request.form.get("chunk_size"),
+     "chunk_overlap": request.form.get("chunk_overlap")
+  }
+
+  try:
+    chunk_size = int(data['chunk_size'])
+    chunk_overlap = int(data['chunk_overlap'])
+
+    if chunk_size <= 0 or chunk_overlap <= 0:
+      return jsonify({"status": "failed", "message": "Chunk size atau chunk overlap harus lebih besar dari 0"}), 400
+    
+    try:
+      create_db_with_langchain(chunk_size, chunk_overlap)
+      return jsonify({"status": "success", "message": "Database berhasil dibuat"}), 200
+    except Exception as e:
+      return jsonify({"status": "failed", "message": "Kesalahan internal server"}), 500
+    
+  except Exception as e:
+    return jsonify({"status": "failed", "message": "Chunk size atau chunk overlap harus angka"}), 400
 
 # Menambahkan endpoint untuk dokumentasi Swagger
 @app.route('/api/test', methods=['POST'])
