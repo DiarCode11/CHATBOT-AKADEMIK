@@ -36,6 +36,7 @@ class PdfDatasets(db.Model):
     created_by = db.relationship('Users', backref='pdf_datasets', lazy=True)
     created_at = db.Column(db.DateTime, nullable=False)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
 
     def __repr__(self):
         return f"PdfDataset('{self.filename}', '{self.year}')"
@@ -62,6 +63,7 @@ class UrlDatasets(db.Model):
     created_by = db.relationship('Users', backref='url_datasets', lazy=True)
     created_at = db.Column(db.DateTime, nullable=False)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
 
     def __repr__(self):
         return f"UrlDataset('{self.title}', '{self.url}')"
