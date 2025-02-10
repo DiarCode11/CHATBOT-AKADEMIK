@@ -16,7 +16,7 @@ link_controller = Blueprint('link', __name__)
 @role_required('admin')
 @link_controller.route('/link', methods=['GET'])
 def get_link_dataset():
-    dataset = UrlDatasets.query.all()
+    dataset = UrlDatasets.query.filter(UrlDatasets.deleted_at.is_(None)).all()
     print(dataset)
 
     result = [
@@ -177,12 +177,12 @@ def delete_link_dataset(id):
         if not dataset:
             return jsonify({"status": "failed", "message": "Data tidak ditemukan"}), 404
         
-        db.session.delete(dataset)
+        dataset.deleted_at = datetime.now()
         db.session.commit()
         return jsonify({"status": "success", "message": "Data berhasil dihapus"}), 200
     except Exception as e:
         print(e)
-        return jsonify({"status": "success", "message": "Terjadi kesalahan saat menghapus data"}), 500
+        return jsonify({"status": "failed", "message": "Terjadi kesalahan saat menghapus data"}), 500
     
 
     

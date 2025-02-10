@@ -133,45 +133,35 @@ def create_db(csv_path: str, dest_path: str):
 
     print("3. Database berhasil di buat")
 
-def create_db_with_langchain():
-    loader = PyPDFDirectoryLoader(path="upload_docs")
-    documents = loader.load()
-
-    df = pd.read_csv("dataset/pdf_list.csv")
-
-    new_docs = []
-    
-    # Tambahkan metadata year
-    for docs in documents:
-        filepath = docs.metadata['source']
-        filename = filepath.replace("upload_docs\\", "")
-        row_selected = df.loc[df['file'] == filename]
-        if not row_selected.empty:
-            docs.metadata['year'] = row_selected['year'].values[0]
-            new_docs.append(docs)
-        else:
-            docs.metadata['year'] = "2024"
-            new_docs.append(docs)
-    
+def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int):    
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=400,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
         separators=["\n\n"]
     )
 
-    chunks = text_splitter.split_documents(new_docs)
+    chunks = text_splitter.split_documents(docs)
 
-    print(len(chunks))
+    print('text berhasil di split')
+
     EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=EMBEDDING_MODEL)
 
-    vector_db = FAISS.from_documents(chunks, EMBEDDER)
+    try: 
+        vector_db = FAISS.from_documents(chunks, EMBEDDER)
 
-    if not os.path.exists("src/db"):
-        os.makedirs("src/db")
+        if not os.path.exists("src/db"):
+            os.makedirs("src/db")
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    vector_db.save_local(f"src/db/db_{timestamp}")
+        db_name = f"db_{timestamp}"
 
-if __name__ == "__main__":
-    create_db(csv_path="dataset/pdf_list.csv", dest_path="src/db/akasha_db2")
+        vector_db.save_local(f"src/db/{db_name}")
+
+        return {"status": "success", "message": f"Database {db_name} berhasil dibuat"}
+    
+    except Exception as e:
+        print(e)
+        return {"status": "failed", "message": "Terjadi kesalahan saat membuat database"}
+
+

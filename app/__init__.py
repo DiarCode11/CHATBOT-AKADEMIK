@@ -84,6 +84,9 @@ def create_app():
 
     from .controllers.link_controller import link_controller
     app.register_blueprint(link_controller, url_prefix='/url-datasets')
+
+    from .controllers.vectordb_controller import vectordb_controller
+    app.register_blueprint(vectordb_controller, url_prefix='/vectordb')
     
     #  # Impor dan inisialisasi SocketIO dari file lain
     from .controllers.socket_controller import init_socket_event

@@ -15,8 +15,8 @@ pdf_controller = Blueprint('pdf', __name__)
 @jwt_required()
 @role_required('admin')
 def get_pdf_dataset():
-    datasets = PdfDatasets.query.all()
-    print(datasets)
+    datasets = PdfDatasets.query.filter(PdfDatasets.deleted_at.is_(None)).all()
+    print("Isi dataset: ", datasets)
     result = [
         {
             "id": data.id,
@@ -165,7 +165,7 @@ def delete_pdf_dataset(id):
             os.remove(file_path)
         
         # Hapus data dari database
-        db.session.delete(dataset)
+        dataset.deleted_at = datetime.now()
         db.session.commit()
         return jsonify({"status": "success", "message": "Data berhasil dihapus"}), 200
     except Exception as e:
