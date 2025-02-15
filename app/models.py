@@ -104,19 +104,37 @@ class Chunks(db.Model):
     def __repr__(self):
         return f"Chunk('{self.chunk}', '{self.title}', '{self.content_type}')"
 
-class ModelSetting(db.Model):
-    __tablename__ = 'cfg_model_setting'
+class EmbedderSetting(db.Model):
+    __tablename__ = 'cfg_embedder_setting'
 
     id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
     chunk_size = db.Column(db.Integer, nullable=False)
     chunk_overlap = db.Column(db.Integer, nullable=False)
     embedder = db.Column(db.String(50), nullable=False)
     llm_model = db.Column(db.String(50), nullable=False)
-    user_id = db.Column(db.String(50), db.ForeignKey('tbl_users.id'), nullable=False)
+    created_user_id = db.Column(db.String(50), db.ForeignKey('tbl_users.id'), nullable=False)
     user = db.relationship('Users', backref='model_setting', lazy=True)
+    created_at = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
+    deleted_at = db.Column(db.DateTime, nullable=True, default=None)
 
     def __repr__(self):
         return f"Model Setting {self.chunk_size} {self.chunk_overlap}"
+    
+class LLMSetting(db.Model):
+    __tablename__ = 'cfg_llm_setting'
+
+    id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
+    llm = db.Column(db.String(50), nullable=False)
+    candidates_size = db.Column(db.Integer, nullable=False)
+    created_user_id = db.Column(db.String(50), db.ForeignKey('tbl_users.id'), nullable=False)
+    user = db.relationship('Users', backref='model_setting', lazy=True)
+    created_at = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
+    deleted_at = db.Column(db.DateTime, nullable=True, default=None)
+
+    def __repr__(self):
+        return f"Embedder Setting {self.embedder}"
 
 class Conversation(db.Model):
     __tablename__ = 'log_conversation'

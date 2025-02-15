@@ -14,6 +14,8 @@ class GeneratorAgent:
             - Sesuaikan jawaban jika pertanyaan menggunakan bahasa selain bahasa indonesia
             - Jawaban hanya berpatokan pada data yang diberikan, jangan gunakan pengetahuanmu sendiri.
             - Kamu harus mengatakan tidak tau jika data yang diberikan tidak ada
+            - Jika informasi ditemukan, tampilkan sumber dari data tersebut dalam bentuk footer dengan format 'Sumber data: <sumber dokumen atau link>' tanpa menyebutkan halaman dan buat dengan markdown bold
+            - Jika informasi tidak ditemukan, maka tidak perlu membuat footer
             pertanyaan pengguna: {question}
             Data yang diberikan: {relevant_response}
         """

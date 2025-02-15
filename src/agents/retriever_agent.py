@@ -17,7 +17,7 @@ class RetrieverAgent:
         query = state["expanded_question"]
 
         try:
-            vector_db_path = "d:/SKRIPSI/CHATBOT AKADEMIK/src/db/db_db_20250210_142509"
+            vector_db_path = "d:/SKRIPSI/CHATBOT AKADEMIK/src/db/db_20250210_142509"
             
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
         

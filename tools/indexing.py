@@ -133,7 +133,7 @@ def create_db(csv_path: str, dest_path: str):
 
     print("3. Database berhasil di buat")
 
-def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int):    
+def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, embedding_model: str):    
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
@@ -144,7 +144,7 @@ def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int):
 
     print('text berhasil di split')
 
-    EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=EMBEDDING_MODEL)
+    EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=embedding_model)
 
     try: 
         vector_db = FAISS.from_documents(chunks, EMBEDDER)
@@ -158,7 +158,7 @@ def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int):
 
         vector_db.save_local(f"src/db/{db_name}")
 
-        return {"status": "success", "message": f"Database {db_name} berhasil dibuat"}
+        return {"status": "success", "message": f"Database {db_name} berhasil dibuat", "chunks": chunks}
     
     except Exception as e:
         print(e)
