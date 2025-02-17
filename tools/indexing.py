@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from app.models import Chunks
 import pandas as pd
+import numpy as np
 import os
 import uuid
 
@@ -134,36 +135,6 @@ def create_db(csv_path: str, dest_path: str):
 
     print("3. Database berhasil di buat")
 
-def show_numeric_vectors(vector_db):
-    # Mendapatkan index FAISS
-    faiss_index = vector_db.index
-    
-    # Mendapatkan jumlah total vectors
-    total_vectors = faiss_index.ntotal
-    print(f"Total vectors dalam database: {total_vectors}")
-    
-    # Mengakses nilai vector
-    if hasattr(faiss_index, 'xb'):
-        vectors = faiss_index.xb
-        print("\nNilai vector untuk setiap dokumen:")
-        for i in range(total_vectors):
-            print(f"\nVector {i+1}:")
-            # Mengambil vector untuk dokumen ke-i
-            vector = vectors[i]
-            # Menampilkan nilai numerik vector
-            print(vector)
-            # Optional: menampilkan dimensi vector
-            print(f"Dimensi vector: {len(vector)}")
-    else:
-        # Alternatif jika tidak bisa mengakses xb langsung
-        # Menggunakan reconstruct untuk mendapatkan vector
-        print("\nNilai vector untuk setiap dokumen:")
-        for i in range(total_vectors):
-            vector = faiss_index.reconstruct(i)
-            print(f"\nVector {i+1}:")
-            print(vector)
-            print(f"Dimensi vector: {len(vector)}")
-
 def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, embedding_model: str):    
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
@@ -177,11 +148,25 @@ def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, em
 
     EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=embedding_model)
 
+    data = []
+
     try: 
         vector_db = FAISS.from_documents(chunks, EMBEDDER)
 
-        print("ISI VECTOR")
-        print(vector_db.afrom_embeddings)
+        faiss_index = vector_db.index
+
+        total_vector = faiss_index.ntotal
+
+        for i in range(total_vector):
+            vector = faiss_index.reconstruct(i)
+            chunk = vector_db.docstore.search(vector_db.index_to_docstore_id[i])
+            data.append(
+                {
+                    "index": i,
+                    "vector": vector,
+                    "chunk": chunk
+                }
+            )
 
         if not os.path.exists("src/db"):
             os.makedirs("src/db")
@@ -192,7 +177,7 @@ def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, em
 
         vector_db.save_local(f"src/db/{db_name}")
 
-        return {"status": "success", "message": f"Database {db_name} berhasil dibuat", "chunks": chunks}
+        return {"status": "success", "message": f"Database {db_name} berhasil dibuat", "db_name": db_name, "data": data}
     
     except Exception as e:
         print(e)

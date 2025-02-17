@@ -3,15 +3,54 @@ from ..models import PdfDatasets, UrlDatasets, EmbedderSetting, Chunks, db
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_core.documents import Document
 from tools.indexing import create_db_with_langchain
+from langchain_community.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
+from dotenv import load_dotenv
 import asyncio
+import os
 from datetime import datetime
+
+load_dotenv()
 
 vectordb_controller = Blueprint('vectordb', __name__)
 
-@vectordb_controller.route('/', methods=['GET'])
-def get_chunks():
-    chunks = Chunks.query.filter(Chunks.deleted_at.is_(None)).all()
-    print(chunks)
+@vectordb_controller.route('/<page>', methods=['GET'])
+def get_chunks(page):
+    page = int(page)
+    first_row = (page - 1) * 5
+    last_row = first_row + 4
+
+    if page < 1:
+        return jsonify({"message": "nomor page tidak boleg kurang dari 1"}), 400
+
+    latest_embedder_setting = EmbedderSetting.query.order_by(EmbedderSetting.created_at.desc()).first()
+    setting = latest_embedder_setting.to_dict()
+    print(setting["embedder"])
+    
+    embedder = OpenAIEmbeddings(model=setting["embedder"])
+
+    vector_db_path = "d:/SKRIPSI/CHATBOT AKADEMIK/src/db/db_20250210_142509"
+            
+    vector_db = FAISS.load_local(vector_db_path, embedder, allow_dangerous_deserialization=True)
+    faiss_index = vector_db.index
+    total_vector = faiss_index.ntotal
+
+    all_data = []
+
+    for i in range(total_vector):
+        vector = faiss_index.reconstruct(i)
+        doc = vector_db.docstore.search(vector_db.index_to_docstore_id[i])
+        all_data.append(
+            {
+                "index": i,
+                # "vector": vector.tolist(),
+                "vector": str(vector),
+                "chunk": doc.page_content,
+                "metadata": doc.metadata
+            }
+        )
+
+    return jsonify({"message": "success", "data": all_data[first_row:last_row], "setting": setting}), 200
 
 
 @vectordb_controller.route('/generate', methods=['POST'])
@@ -83,7 +122,12 @@ async def generate_vector_db():
             )
         )
 
-    response = create_db_with_langchain(docs=full_docs, chunk_size=chunk_size, chunk_overlap=chunk_overlap, embedding_model=embedder)
+    response = create_db_with_langchain(
+        docs=full_docs, 
+        chunk_size=chunk_size, 
+        chunk_overlap=chunk_overlap, 
+        embedding_model=embedder,
+        )
 
     if response['status'] == 'success':
         try:
@@ -91,13 +135,13 @@ async def generate_vector_db():
                 chunk_size=chunk_size, 
                 chunk_overlap=chunk_overlap, 
                 embedder=embedder, 
-                created_user_id='53c3b91f-3946-4e63-be22-663f331a0b77', 
-                created_at=datetime.now(), 
-                updated_at=datetime.now()
+                vector_db_name=response['db_name'],
+                created_user_id='53c3b91f-3946-4e63-be22-663f331a0b77',
+                created_at=datetime.now()
             )
             db.session.add(new_setting)
             db.session.commit()
-            return jsonify({'response': "Basis data vektor berhasil dibuat"}), 200
+            return jsonify({'response': "Basis data vektor berhasil dibuat", "setting": new_setting.to_dict(), "data": response["data"]}), 200
         except Exception as e: 
             print("Posisi error: ", e)
             return jsonify({'response': "Gagal menyimpan data ke database"}), 500
