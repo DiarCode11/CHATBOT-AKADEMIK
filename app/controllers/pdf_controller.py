@@ -40,12 +40,12 @@ def add_pdf_dataset():
 
     if not (year.isdigit() and len(year) == 4):
         return jsonify({"status": "failed", "message": "Format tahun tidak valid"}), 400
-    
+
     file = request.files.get('file')
 
     if not file:
       return jsonify({"status": "failed", "message": "Parameter file tidak ditemukan"}), 400
-    
+
     filename = secure_filename(file.filename)
     print("Nama file yang dikirim: ", filename)
 
@@ -70,7 +70,7 @@ def add_pdf_dataset():
 
     # Buat ID untuk dokumen baru
     new_id = str(uuid.uuid4())
-    
+
     # Jika Validasi telah selesai
     new_pdf = PdfDatasets(
         id=new_id,
@@ -82,7 +82,7 @@ def add_pdf_dataset():
         updated_at=datetime.now()
     )
 
-    # Simpan ke database    
+    # Simpan ke database
     try:
         # Simpan file ke folder
         file.save(os.path.join("dataset", filename))
@@ -158,12 +158,12 @@ def delete_pdf_dataset(id):
         dataset = PdfDatasets.query.filter_by(id=id).first()
         if not dataset:
             return jsonify({"status": "failed", "message": "Data tidak ditemukan"}), 404
-        
+
         # Hapus file
         file_path = os.path.join("dataset", dataset.filename)
         if os.path.exists(file_path):
             os.remove(file_path)
-        
+
         # Hapus data dari database
         dataset.deleted_at = datetime.now()
         db.session.commit()
@@ -171,4 +171,3 @@ def delete_pdf_dataset(id):
     except Exception as e:
         print(e)
         return jsonify({"status": "failed", "message": "Terjadi kesalahan saat menghapus data"}), 500
-    

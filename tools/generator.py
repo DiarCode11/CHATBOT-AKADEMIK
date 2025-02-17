@@ -1,8 +1,8 @@
 from openai import OpenAI
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
-import os
 from langchain_ollama import OllamaLLM
+import os
 
 # Memuat file .env
 load_dotenv()
