@@ -21,37 +21,45 @@ def get_chunks(page):
     last_row = first_row + 4
 
     if page < 1:
-        return jsonify({"message": "nomor page tidak boleg kurang dari 1"}), 400
-
+        return jsonify({"message": "nomor page tidak boleh kurang dari 1"}), 400
+    
+    # Ambil History pengaturan yang terbaru
     latest_embedder_setting = EmbedderSetting.query.order_by(EmbedderSetting.created_at.desc()).first()
     setting = latest_embedder_setting.to_dict()
-    print(setting["embedder"])
+    print(setting["vector_db_name"])
+    vector_db_name = setting["vector_db_name"]
     
     embedder = OpenAIEmbeddings(model=setting["embedder"])
+    
+    vector_db_path = f"d:/SKRIPSI/CHATBOT AKADEMIK/src/db/{vector_db_name}"
 
-    vector_db_path = "d:/SKRIPSI/CHATBOT AKADEMIK/src/db/db_20250210_142509"
-            
-    vector_db = FAISS.load_local(vector_db_path, embedder, allow_dangerous_deserialization=True)
-    faiss_index = vector_db.index
-    total_vector = faiss_index.ntotal
+    if not os.path.exists(vector_db_path):
+        return jsonify({"message": "terjadi kesalahan saat mengakses vector db, mohon buat vector db ulang"}), 404
 
-    all_data = []
+    try:
+        vector_db = FAISS.load_local(vector_db_path, embedder, allow_dangerous_deserialization=True)
+        faiss_index = vector_db.index
+        total_chunk = faiss_index.ntotal
 
-    for i in range(total_vector):
-        vector = faiss_index.reconstruct(i)
-        doc = vector_db.docstore.search(vector_db.index_to_docstore_id[i])
-        all_data.append(
-            {
-                "index": i,
-                # "vector": vector.tolist(),
-                "vector": str(vector),
-                "chunk": doc.page_content,
-                "metadata": doc.metadata
-            }
-        )
+        all_data = []
 
-    return jsonify({"message": "success", "data": all_data[first_row:last_row], "setting": setting}), 200
+        for i in range(first_row, last_row):
+            vector = faiss_index.reconstruct(i)
+            doc = vector_db.docstore.search(vector_db.index_to_docstore_id[i])
+            all_data.append(
+                {
+                    "index": i,
+                    # "vector": vector.tolist(),
+                    "vector": str(vector),
+                    "chunk": doc.page_content,
+                    "metadata": doc.metadata
+                }
+            )
 
+        return jsonify({"message": "success", "data": all_data, "setting": setting, "total_chunk": total_chunk}), 200
+    except Exception as e:
+        print(str(e))
+        return jsonify({"message": "Gagal saat memuat vector db dengan FAISS"}), 500
 
 @vectordb_controller.route('/generate', methods=['POST'])
 async def generate_vector_db():

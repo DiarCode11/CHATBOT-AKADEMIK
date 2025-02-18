@@ -125,6 +125,7 @@ class EmbedderSetting(db.Model):
     
     def to_dict(self):
         return {
+            "id": self.id,
             "chunk_size": self.chunk_size,
             "chunk_overlap": self.chunk_overlap,
             "embedder": self.embedder,
@@ -140,12 +141,18 @@ class LLMSetting(db.Model):
     candidates_size = db.Column(db.Integer, nullable=False)
     created_user_id = db.Column(db.String(50), db.ForeignKey('tbl_users.id'), nullable=False)
     user = db.relationship('Users', backref='llm_setting', lazy=True)
-    created_at = db.Column(db.DateTime, nullable=False)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
-    deleted_at = db.Column(db.DateTime, nullable=True, default=None)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
 
     def __repr__(self):
         return f"Embedder Setting {self.embedder}"
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "llm": self.llm,
+            "candidate_size": self.candidates_size,
+            "created_at": self.created_at
+        }
 
 class Conversation(db.Model):
     __tablename__ = 'log_conversation'

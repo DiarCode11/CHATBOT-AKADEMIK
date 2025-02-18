@@ -2,7 +2,7 @@ from langgraph.graph import END, START, StateGraph
 from src.state import AgentState
 from src.agents import QueryExpansionAgent, RetrieverAgent, CorrectiveAgent, GeneratorAgent
 
-def build_graph(question: str):
+def build_graph(question: str, vector_db_name: str, embedder_model: str):
     workflow = StateGraph(AgentState)
 
     # Add nodes
@@ -18,7 +18,7 @@ def build_graph(question: str):
     workflow.add_edge("generator_agent", END)
 
     graph = workflow.compile()
-    result = graph.invoke({"question": question})
+    result = graph.invoke({"question": question, "vector_db_name": vector_db_name, "embedder_model": embedder_model})
 
     print(result["final_answer"])
 
