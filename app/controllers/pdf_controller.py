@@ -15,7 +15,7 @@ pdf_controller = Blueprint('pdf', __name__)
 @jwt_required()
 @role_required('admin')
 def get_pdf_dataset():
-    datasets = PdfDatasets.query.filter(PdfDatasets.deleted_at.is_(None)).all()
+    datasets = PdfDatasets.query.filter(PdfDatasets.deleted_at.is_(None)).order_by(PdfDatasets.created_at.desc()).all()
     print("Isi dataset: ", datasets)
     result = [
         {

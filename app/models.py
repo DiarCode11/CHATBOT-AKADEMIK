@@ -145,7 +145,6 @@ class LLMSetting(db.Model):
 
     def __repr__(self):
         return f"Embedder Setting {self.embedder}"
-    
     def to_dict(self):
         return {
             "id": self.id,

@@ -2,7 +2,7 @@ import gevent
 from flask_socketio import SocketIO, emit
 from flask import Flask, request, jsonify, session
 from graph import build_graph
-from ..models import EmbedderSetting
+from ..models import EmbedderSetting, LLMSetting
 
 # Membuat instance SocketIO
 socketio = SocketIO(cors_allowed_origins="*")
@@ -31,10 +31,21 @@ def init_socket_event(socketio):
     def handle_message(data):
         socket_id = request.sid
         latest_embedder_setting = EmbedderSetting.query.order_by(EmbedderSetting.created_at.desc()).first()
+        latest_llm_setting = LLMSetting.query.order_by(LLMSetting.created_at.desc()).first()
 
-        settings = latest_embedder_setting.to_dict()
-        vector_db_name = settings["vector_db_name"]
-        embedder = settings["embedder"]
+        embedder_settings = latest_embedder_setting.to_dict()
+        llm_settings = latest_llm_setting.to_dict()
+
+        vector_db_name = embedder_settings["vector_db_name"]
+        embedder = embedder_settings["embedder"]
+
+        llm_model = llm_settings["llm"]
+        candidates_size = llm_settings["candidate_size"]
+
+        print("Embedder: ", embedder)
+        print("Vector DB: ", vector_db_name)
+        print("LLM Model: ", llm_model)
+        print("Candidate Size: ", candidates_size)
 
         # Menangkap teks yang dikirimkan oleh klien
         print(f"ID klien: {socket_id}")
@@ -42,7 +53,13 @@ def init_socket_event(socketio):
         query = data['message']  # Mengambil teks pesan yang dikirimkan
 
         try:
-            full_response = build_graph(question=query, embedder_model=embedder, vector_db_name=vector_db_name)
+            full_response = build_graph(
+                question = query, 
+                embedder_model = embedder, 
+                vector_db_name = vector_db_name,
+                llm_model = llm_model,
+                candidates_size = candidates_size
+            )
 
             length_chars: int = 4
 

@@ -6,7 +6,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_a
 from datetime import datetime
 from ..utils.authorization import role_required
 from ..utils.form_validation import *
-from ..utils.scraper import scrape
+from ..utils.scraper import scrape, remove_non_ascii
 import os
 import uuid
 
@@ -91,6 +91,7 @@ def add_link_dataset():
     
     if not data["text_scraped"]:
         return jsonify({"status": "failed", "message": "Lakukan scraping terlebih dahulu"}), 400
+    
     
     try:
         new_dataset = UrlDatasets(

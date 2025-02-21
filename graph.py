@@ -2,7 +2,7 @@ from langgraph.graph import END, START, StateGraph
 from src.state import AgentState
 from src.agents import QueryExpansionAgent, RetrieverAgent, CorrectiveAgent, GeneratorAgent
 
-def build_graph(question: str, vector_db_name: str, embedder_model: str):
+def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_model: str, candidates_size: int):
     workflow = StateGraph(AgentState)
 
     # Add nodes
@@ -18,7 +18,14 @@ def build_graph(question: str, vector_db_name: str, embedder_model: str):
     workflow.add_edge("generator_agent", END)
 
     graph = workflow.compile()
-    result = graph.invoke({"question": question, "vector_db_name": vector_db_name, "embedder_model": embedder_model})
+    result = graph.invoke({
+        "question": question, 
+        "vector_db_name": vector_db_name, 
+        "embedder_model": embedder_model, 
+        "llm_model": llm_model,
+        "candidates_size": candidates_size
+    })
+    
 
     print(result["final_answer"])
 
@@ -26,7 +33,8 @@ def build_graph(question: str, vector_db_name: str, embedder_model: str):
     
 
 
-# build_graph("siapa rektor undiksha")
+# data = build_graph("siapa rektor undiksha", "db_20250221_000015", "text-embedding-3-small", "gpt-4o-mini", 5)
+# print(data)
 
 
         

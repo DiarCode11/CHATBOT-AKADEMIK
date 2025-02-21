@@ -1,4 +1,5 @@
 from openai import OpenAI
+from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 from langchain_ollama import OllamaLLM
