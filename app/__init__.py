@@ -75,6 +75,10 @@ def create_app():
     # Inisialisasi migrasi database
     migrate = Migrate(app, db)
 
+    @app.route('/test', methods=['GET'])
+    def test_connection():
+        return jsonify({"message": "Server is running"}), 200
+
     # Impor blueprint setelah inisialisasi db
     from .controllers.user_controller import user_controller
     app.register_blueprint(user_controller, url_prefix='/users')
