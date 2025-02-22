@@ -55,7 +55,7 @@ def create_app():
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
     app.config["JWT_COOKIE_SECURE"] = False  # Ubah ke True jika HTTPS
     app.config["JWT_COOKIE_HTTPONLY"] = True
-    app.config["JWT_COOKIE_SAMESITE"] = "Lax"
+    app.config["JWT_COOKIE_SAMESITE"] = "None"
 
     # Menginisialisasi objek db dan socketio dengan aplikasi Flask
     db.init_app(app)
@@ -65,6 +65,7 @@ def create_app():
     @app.errorhandler(NoAuthorizationError)
     @app.errorhandler(JWTDecodeError)
     def handle_auth_error(e):
+        print("Posisi errornya: ", e)
         print("terdeteksi akses tidak valid")
         return jsonify({"message": "Akses tidak valid"}), 401
 
