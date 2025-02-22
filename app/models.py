@@ -12,6 +12,14 @@ class Reaction(enum.Enum):
     like = "like"
     dislike = "dislike"
 
+class FileType(enum.Enum):
+    url = "url"
+    pdf = "pdf"
+
+class Action(enum.Enum):
+    add = "add"
+    delete = "delete"
+    update = "update"   
 
 class Users(db.Model):
     __tablename__ = 'tbl_users'
@@ -162,6 +170,18 @@ class Conversation(db.Model):
     question = db.Column(db.Text, nullable=False)
     response = db.Column(db.Text, nullable=False)
     response_reaction = db.Column(db.Enum(Reaction), nullable=False, default=Reaction.null)
+
+class ModifiedDataset(db.Model):
+    __tablename__ = 'log_modified_dataset'
+
+    id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
+    file_id = db.Column(db.Text, nullable=False)
+    action = db.Column(db.Enum(Action), nullable=False)
+    file_type = db.Column(db.Enum(FileType), nullable=False)
+    modified_by_id = db.Column(db.String(100), db.ForeignKey('tbl_users.id'), nullable=False)
+    created_by = db.relationship('Users', backref='modified_datasets', lazy=True)
+    created_at = db.Column(db.DateTime, nullable=False)
+
 
 
     

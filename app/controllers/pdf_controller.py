@@ -116,6 +116,9 @@ def update_pdf_dataset(id):
 
         # Jika ada perubahan pada file
         if filename != dataset.filename:
+            if not os.path.exists("dataset"):
+                os.makedirs("dataset")
+
             # Simpan file baru
             file.save(os.path.join("dataset", filename))
 
