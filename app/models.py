@@ -40,6 +40,7 @@ class PdfDatasets(db.Model):
     filename = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text, nullable=False)
     year = db.Column(db.String(100), nullable=False)
+    has_generated_to_vector = db.Column(db.Boolean, nullable=False, default=False)
     created_by_id = db.Column(db.String(100), db.ForeignKey('tbl_users.id'), nullable=False)
     created_by = db.relationship('Users', backref='pdf_datasets', lazy=True)
     created_at = db.Column(db.DateTime, nullable=False)
@@ -66,6 +67,7 @@ class UrlDatasets(db.Model):
     url = db.Column(db.String(100), nullable=False)
     title = db.Column(db.String(100), nullable=False)
     year = db.Column(db.String(4), nullable=False)
+    has_generated_to_vector = db.Column(db.Boolean, nullable=False, default=False)
     extracted_text = db.Column(db.Text, nullable=False)
     created_by_id = db.Column(db.String(100), db.ForeignKey('tbl_users.id'), nullable=False)
     created_by = db.relationship('Users', backref='url_datasets', lazy=True)
@@ -171,16 +173,7 @@ class Conversation(db.Model):
     response = db.Column(db.Text, nullable=False)
     response_reaction = db.Column(db.Enum(Reaction), nullable=False, default=Reaction.null)
 
-class ModifiedDataset(db.Model):
-    __tablename__ = 'log_modified_dataset'
 
-    id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
-    file_id = db.Column(db.Text, nullable=False)
-    action = db.Column(db.Enum(Action), nullable=False)
-    file_type = db.Column(db.Enum(FileType), nullable=False)
-    modified_by_id = db.Column(db.String(100), db.ForeignKey('tbl_users.id'), nullable=False)
-    created_by = db.relationship('Users', backref='modified_datasets', lazy=True)
-    created_at = db.Column(db.DateTime, nullable=False)
 
 
 
