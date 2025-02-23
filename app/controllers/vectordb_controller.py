@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from ..models import PdfDatasets, UrlDatasets, EmbedderSetting, Chunks, db
+from ..models import PdfDatasets, UrlDatasets, EmbedderSetting, Chunks, ModifiedDataset, db
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_core.documents import Document
 from tools.indexing import create_db_with_langchain
@@ -28,8 +28,14 @@ def get_chunks(page):
     if page < 1:
         return jsonify({"message": "nomor page tidak boleh kurang dari 1"}), 400
     
-    
     try:
+        record_modified_dataset = ModifiedDataset.query.filter(ModifiedDataset.action.isnot(None)).first()
+
+        if not record_modified_dataset:
+            this_is_latest_db = True
+        else:
+            this_is_latest_db = False
+
         # Ambil History pengaturan yang terbaru
         latest_embedder_setting = EmbedderSetting.query.order_by(EmbedderSetting.created_at.desc()).first()
         setting = latest_embedder_setting.to_dict()
@@ -75,7 +81,7 @@ def get_chunks(page):
                 }
             )
 
-        return jsonify({"message": "success", "data": all_data, "setting": setting, "total_chunk": total_chunk, "pages": pages, "current_page": page, "items_per_page": items_per_page }), 200
+        return jsonify({"message": "success", "data": all_data, "setting": setting, "total_chunk": total_chunk, "pages": pages, "current_page": page, "items_per_page": items_per_page, "is_latest_db": this_is_latest_db }), 200
     except Exception as e:
         import traceback
         print("Posisi error:", str(e))
@@ -116,6 +122,7 @@ async def generate_vector_db():
         if key == 'embedder':
             if data_json[key] not in embedder_list:
                 return jsonify({"status": "failed", "message": "Embedder tidak valid"}), 400
+            
     chunk_size = int(data_json['chunk_size'])
     chunk_overlap = int(data_json['chunk_overlap'])
     embedder = data_json['embedder']
@@ -190,6 +197,8 @@ async def generate_vector_db():
 
     if response['status'] == 'success':
         try:
+
+
             new_setting = EmbedderSetting(
                 chunk_size=chunk_size, 
                 chunk_overlap=chunk_overlap, 
@@ -199,6 +208,7 @@ async def generate_vector_db():
                 created_at=datetime.now()
             )
             db.session.add(new_setting)
+            db.session.query(ModifiedDataset).update({ModifiedDataset.action: None})
             db.session.commit()
             return jsonify({'message': "Basis data vektor berhasil dibuat", "setting": new_setting.to_dict(), "data": response['data'], "total_chunk": response['total_chunk']}), 200
         except Exception as e: 

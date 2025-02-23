@@ -144,6 +144,9 @@ def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, em
 
     chunks = text_splitter.split_documents(docs)
 
+    for index, doc in enumerate(chunks):
+        doc.metadata["index"] = index
+
     print('text berhasil di split')
 
     EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=embedding_model)

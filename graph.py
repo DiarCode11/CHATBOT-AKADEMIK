@@ -25,9 +25,12 @@ def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_mod
         "llm_model": llm_model,
         "candidates_size": candidates_size
     })
-    
 
     print(result["final_answer"])
+
+    all_result = {
+        
+    }
 
     return result["final_answer"]
     

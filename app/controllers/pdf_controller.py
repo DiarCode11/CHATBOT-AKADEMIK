@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify, session, make_response
-from ..models import PdfDatasets, db
+from ..models import PdfDatasets, ModifiedDataset, FileType, db, Action
 from tools.api_tools import validate_file, validate_json
 from werkzeug.utils import secure_filename
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_access_cookies, unset_jwt_cookies
 from datetime import datetime
 from ..utils.authorization import role_required
+from sqlalchemy import func
 import os
 import uuid
 
@@ -16,6 +17,22 @@ pdf_controller = Blueprint('pdf', __name__)
 @role_required('admin')
 def get_pdf_dataset():
     datasets = PdfDatasets.query.filter(PdfDatasets.deleted_at.is_(None)).order_by(PdfDatasets.created_at.desc()).all()
+
+    # Buat subquery untuk mendapatkan nilai maksimum created_at per file_id
+    subquery = db.session.query(
+        ModifiedDataset.file_id,
+        func.max(ModifiedDataset.created_at).label("max_created_at")
+    ).filter(
+        (ModifiedDataset.file_type == FileType.pdf) & (ModifiedDataset.action != None)
+    ).group_by(ModifiedDataset.file_id).subquery()
+
+    # Join dengan tabel ModifiedDataset berdasarkan file_id dan created_at yang sama dengan nilai maksimum
+    not_updated_pdf = ModifiedDataset.query.join(
+        subquery,
+        (ModifiedDataset.file_id == subquery.c.file_id) &
+        (ModifiedDataset.created_at == subquery.c.max_created_at)
+    ).order_by(ModifiedDataset.created_at.desc()).all()
+
     print("Isi dataset: ", datasets)
     result = [
         {
@@ -29,7 +46,10 @@ def get_pdf_dataset():
         }
         for data in datasets
     ]
-    return jsonify({"status": "success", "data": result}), 200
+
+    not_updated_pdf_list = [data.to_dict() for data in not_updated_pdf]
+
+    return jsonify({"status": "success", "data": result, "not_updated_pdf": not_updated_pdf_list}), 200
 
 # Endpoint untuk menambahkan dataset
 @jwt_required()
@@ -83,7 +103,14 @@ def add_pdf_dataset():
     )
 
     # Simpan history 
-    
+    new_history = ModifiedDataset(
+        file_id=new_id,
+        file_type=FileType.pdf,
+        action=Action.add,
+        modified_by_id=session['user_id'],
+        created_at=
+        datetime.now()
+    )
 
     # Simpan ke database
     try:
@@ -92,8 +119,27 @@ def add_pdf_dataset():
 
         # Simpan data ke database
         db.session.add(new_pdf)
+        db.session.add(new_history)
         db.session.commit()
-        return jsonify({"status": "success", "message": "Data berhasil ditambahkan", "data": new_pdf.to_dict()}), 201
+
+        # Buat subquery untuk mendapatkan nilai maksimum created_at per file_id
+        subquery = db.session.query(
+            ModifiedDataset.file_id,
+            func.max(ModifiedDataset.created_at).label("max_created_at")
+        ).filter(
+            (ModifiedDataset.file_type == FileType.pdf) & (ModifiedDataset.action != None)
+        ).group_by(ModifiedDataset.file_id).subquery()
+
+        # Join dengan tabel ModifiedDataset berdasarkan file_id dan created_at yang sama dengan nilai maksimum
+        not_updated_pdf = ModifiedDataset.query.join(
+            subquery,
+            (ModifiedDataset.file_id == subquery.c.file_id) &
+            (ModifiedDataset.created_at == subquery.c.max_created_at)
+        ).order_by(ModifiedDataset.created_at.desc()).all()
+
+        not_updated_pdf_list = [data.to_dict() for data in not_updated_pdf]
+
+        return jsonify({"status": "success", "message": "Data berhasil ditambahkan", "data": new_pdf.to_dict(), "not_updated_pdf": not_updated_pdf_list}), 201
     except Exception as e:
         print(e)
         return jsonify({"status": "failed", "message": "Terjadi kesalahan saat menyimpan data"}), 500
@@ -149,9 +195,38 @@ def update_pdf_dataset(id):
         dataset.description = data['description']
         dataset.updated_at = datetime.now()
 
+        # Simpan history 
+        new_history = ModifiedDataset(
+            file_id=id,
+            file_type=FileType.pdf,
+            action=Action.update,
+            modified_by_id=session['user_id'],
+            created_at=datetime.now()
+        )
+
+        db.session.add(new_history)
+
         # Simpan data ke database
         db.session.commit()
-        return jsonify({"status": "success", "message": "Data berhasil diubah", "data_updated": dataset.to_dict()}), 200
+
+        # Buat subquery untuk mendapatkan nilai maksimum created_at per file_id
+        subquery = db.session.query(
+            ModifiedDataset.file_id,
+            func.max(ModifiedDataset.created_at).label("max_created_at")
+        ).filter(
+            (ModifiedDataset.file_type == FileType.pdf) & (ModifiedDataset.action != None)
+        ).group_by(ModifiedDataset.file_id).subquery()
+
+        # Join dengan tabel ModifiedDataset berdasarkan file_id dan created_at yang sama dengan nilai maksimum
+        not_updated_pdf = ModifiedDataset.query.join(
+            subquery,
+            (ModifiedDataset.file_id == subquery.c.file_id) &
+            (ModifiedDataset.created_at == subquery.c.max_created_at)
+        ).order_by(ModifiedDataset.created_at.desc()).all()
+
+        not_updated_pdf_list = [data.to_dict() for data in not_updated_pdf]
+
+        return jsonify({"status": "success", "message": "Data berhasil diubah", "data_updated": dataset.to_dict(), "not_updated_pdf": not_updated_pdf_list}), 200
     except Exception as e:
         print(e)
         return jsonify({"status": "failed", "message": "Terjadi kesalahan saat mengubah data"}), 500
@@ -172,8 +247,36 @@ def delete_pdf_dataset(id):
 
         # Hapus data dari database
         dataset.deleted_at = datetime.now()
+
+        # Simpan history 
+        new_history = ModifiedDataset(
+            file_id=id,
+            file_type=FileType.pdf,
+            action=Action.delete,
+            modified_by_id=session['user_id'],
+            created_at=datetime.now()
+        )
+
+        db.session.add(new_history)
         db.session.commit()
-        return jsonify({"status": "success", "message": "Data berhasil dihapus"}), 200
+
+        # Buat subquery untuk mendapatkan nilai maksimum created_at per file_id
+        subquery = db.session.query(
+            ModifiedDataset.file_id,
+            func.max(ModifiedDataset.created_at).label("max_created_at")
+        ).filter(
+            (ModifiedDataset.file_type == FileType.pdf) & (ModifiedDataset.action != None)
+        ).group_by(ModifiedDataset.file_id).subquery()
+
+        # Join dengan tabel ModifiedDataset berdasarkan file_id dan created_at yang sama dengan nilai maksimum
+        not_updated_pdf = ModifiedDataset.query.join(
+            subquery,
+            (ModifiedDataset.file_id == subquery.c.file_id) &
+            (ModifiedDataset.created_at == subquery.c.max_created_at)
+        ).order_by(ModifiedDataset.created_at.desc()).all()
+
+        not_updated_pdf_list = [data.to_dict() for data in not_updated_pdf]
+        return jsonify({"status": "success", "message": "Data berhasil dihapus", "not_updated_pdf": not_updated_pdf_list}), 200
     except Exception as e:
         print(e)
         return jsonify({"status": "failed", "message": "Terjadi kesalahan saat menghapus data"}), 500
