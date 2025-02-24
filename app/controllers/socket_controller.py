@@ -2,7 +2,11 @@ import gevent
 from flask_socketio import SocketIO, emit
 from flask import Flask, request, jsonify, session
 from graph import build_graph
-from ..models import EmbedderSetting, LLMSetting
+from datetime import datetime
+import uuid
+import json
+import traceback
+from ..models import EmbedderSetting, LLMSetting, RetrievedChunks, ChatProcess, db
 
 # Membuat instance SocketIO
 socketio = SocketIO(cors_allowed_origins="*")
@@ -53,6 +57,7 @@ def init_socket_event(socketio):
         query = data['message']  # Mengambil teks pesan yang dikirimkan
 
         try:
+            new_id = str(uuid.uuid4())
             full_response = build_graph(
                 question = query, 
                 embedder_model = embedder, 
@@ -62,13 +67,41 @@ def init_socket_event(socketio):
             )
 
             length_chars: int = 4
-
-            for i in range(0, len(full_response), length_chars):
-                chunk = full_response[i:i+length_chars]
+            for i in range(0, len(full_response["final_answer"]), length_chars):
+                chunk = full_response["final_answer"][i:i+length_chars]
                 emit('response', {'chunk': chunk}, room=socket_id)
                 gevent.sleep(0.08)
 
+
+            chunk_data = full_response["chunks_data"]
+            new_chat_process = ChatProcess(
+                id = new_id,
+                query = query,
+                vector_from_query = json.dumps(full_response["vector_from_query"]),
+                expansion_result = full_response["expanded_question"],
+                corrective_result = full_response["cleaned_context"],
+                final_result = full_response["final_answer"],
+                created_at = datetime.now()
+            )
+
+            db.session.add(new_chat_process)
+            db.session.commit()
+
+            new_retrieved_chunks = [
+                RetrievedChunks(
+                    id=str(uuid.uuid4()),
+                    chat_process_id = new_id,
+                    chunk = str(data['chunk']),
+                    vector = json.dumps(data['vector'].tolist()),
+                    similiarity_score = data['score']
+                ) for data in chunk_data
+            ]
+            
+            db.session.bulk_save_objects(new_retrieved_chunks)
+            db.session.commit()
+
         except Exception as e:
+            traceback.print_exc()
             print('Terdapat error ', str(e))
             error_response = "Sepertinya ada masalah dengan internal server. Mohon tunggu beberapa saat untuk maintenance"
             

@@ -161,15 +161,47 @@ class LLMSetting(db.Model):
             "created_at": self.created_at
         }
 
-class Conversation(db.Model):
-    __tablename__ = 'log_conversation'
+class ChatProcess(db.Model):
+    __tablename__ = 'log_chat_process'
 
     id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = db.Column(db.String(50), db.ForeignKey('tbl_users.id'), nullable=False)
-    user = db.relationship('Users', backref='conversation', lazy=True)
-    question = db.Column(db.Text, nullable=False)
-    response = db.Column(db.Text, nullable=False)
-    response_reaction = db.Column(db.Enum(Reaction), nullable=False, default=Reaction.null)
+    query = db.Column(db.Text, nullable=False)
+    vector_from_query = db.Column(db.Text, nullable=False)
+    expansion_result = db.Column(db.Text, nullable=False)
+    retrieval_result = db.relationship('RetrievedChunks', backref='chat_process', lazy=True)
+    corrective_result = db.Column(db.Text, nullable=False)
+    final_result = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
+
+    def get_retrieval_result(self):
+        return [result.to_dict() for result in self.retrieval_result]
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "query": self.query,
+            "expansion_result": self.expansion_result,
+            "retrieval_result": self.get_retrieval_result(),
+            "corrective_result": self.corrective_result,
+            "final_result": self.final_result,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+class RetrievedChunks(db.Model):
+    __tablename__ = 'log_retrieved_chunks'
+
+    id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
+    chat_process_id = db.Column(db.String(100), db.ForeignKey('log_chat_process.id'), nullable=False)
+    chunk = db.Column(db.Text, nullable=False)
+    vector = db.Column(db.Text, nullable=False)
+    similiarity_score = db.Column(db.String(100), nullable=False)
+
+    def to_dict(self):
+        return {
+            "chunk": self.chunk,
+            "similiarity_score": self.similiarity_score
+        }
+
 
 class ModifiedDataset(db.Model):
     __tablename__ = 'log_modified_dataset'

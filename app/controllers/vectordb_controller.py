@@ -210,7 +210,7 @@ async def generate_vector_db():
             db.session.add(new_setting)
             db.session.query(ModifiedDataset).update({ModifiedDataset.action: None})
             db.session.commit()
-            return jsonify({'message': "Basis data vektor berhasil dibuat", "setting": new_setting.to_dict(), "data": response['data'], "total_chunk": response['total_chunk']}), 200
+            return jsonify({'message': "Basis data vektor berhasil dibuat", "setting": new_setting.to_dict(), "data": response['data'], "total_chunk": response['total_chunk'], "is_latest_db": True}), 200
         except Exception as e: 
             print("Posisi error: ", e)
             return jsonify({'message': "Gagal menyimpan data ke database"}), 500
