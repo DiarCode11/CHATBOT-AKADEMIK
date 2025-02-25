@@ -98,7 +98,7 @@ def add_new_setting():
     
     user_id = '53c3b91f-3946-4e63-be22-663f331a0b77' # Wajib diganti dengan user id yang valid
     try:
-        new_setting = LLMSetting(llm=llm, candidates_size=candidate_size, created_user_id=user_id, created_at=datetime.now())
+        new_setting = LLMSetting(llm=llm, candidates_size=candidate_size, created_user_id=session['user_id'], created_at=datetime.now())
         db.session.add(new_setting)
         db.session.commit()
         return jsonify({"message": "Pengaturan berhasil diubah", "data": new_setting.to_dict()}), 201

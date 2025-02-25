@@ -210,7 +210,7 @@ async def generate_vector_db():
                 chunk_overlap=chunk_overlap, 
                 embedder=embedder, 
                 vector_db_name=response['db_name'],
-                created_user_id='53c3b91f-3946-4e63-be22-663f331a0b77',
+                created_user_id=session['user_id'],
                 created_at=datetime.now()
             )
             db.session.add(new_setting)

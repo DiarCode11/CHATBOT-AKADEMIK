@@ -19,8 +19,9 @@ def init_socket_event(socketio):
         clients.append(request.remote_addr)
         print(f"\n{len(set(clients))} Klien unik terhubung.")
         user_amount = len(set(clients))
+        total_chat = ChatProcess.query.count()
         print(f"IP client terhubung: {str(set(clients))}")
-        emit('user_connected', {'amount': user_amount, 'message': 'klien terhubung'}, broadcast=True)
+        emit('user_connected', {'amount': user_amount, 'message': 'klien terhubung', 'total_chat': total_chat}, broadcast=True)
 
     @socketio.on('disconnect', namespace='/')
     def handle_disconnect():
