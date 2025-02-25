@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
-from .database import Base, se
+from sqlalchemy.orm import relationship, Session
+from .database import Base
 from datetime import datetime 
 import uuid
 import enum
@@ -223,12 +223,12 @@ class ModifiedDataset(Base):
     created_by = relationship('Users', backref='modified_datasets', lazy=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now())
 
-    def get_filename(self):
+    def get_filename(self, db: Session):
         if self.file_type == FileType.url:
-            url = session.get(UrlDatasets, self.file_id)
+            url = db.get(UrlDatasets, self.file_id)
             return url.title if url else None
         elif self.file_type == FileType.pdf:
-            pdf = session.get(PdfDatasets, self.file_id)
+            pdf = db.get(PdfDatasets, self.file_id)
             return pdf.filename if pdf else None
         return None
     
