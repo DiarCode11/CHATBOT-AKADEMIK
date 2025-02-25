@@ -72,14 +72,19 @@ def init_socket_event(socketio):
                 emit('response', {'chunk': chunk}, room=socket_id)
                 gevent.sleep(0.08)
 
+            print("Data corrective: ", full_response["corrective_prompt"])
+            print("Data generator: ", full_response.keys())
+
 
             chunk_data = full_response["chunks_data"]
             new_chat_process = ChatProcess(
                 id = new_id,
-                query = query,
+                question = query,
                 vector_from_query = json.dumps(full_response["vector_from_query"]),
                 expansion_result = full_response["expanded_question"],
+                corrective_prompt = full_response["corrective_prompt"],
                 corrective_result = full_response["cleaned_context"],
+                generator_prompt = full_response["generator_prompt"],
                 final_result = full_response["final_answer"],
                 created_at = datetime.now()
             )
@@ -87,11 +92,14 @@ def init_socket_event(socketio):
             db.session.add(new_chat_process)
             db.session.commit()
 
+            def clean_text(text : str):
+                return text.encode("utf-8", "ignore").decode("utf-8")
+
             new_retrieved_chunks = [
                 RetrievedChunks(
                     id=str(uuid.uuid4()),
                     chat_process_id = new_id,
-                    chunk = str(data['chunk']),
+                    chunk = clean_text(str(data['chunk'])),
                     vector = json.dumps(data['vector'].tolist()),
                     similiarity_score = data['score']
                 ) for data in chunk_data

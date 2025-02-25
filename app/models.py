@@ -165,24 +165,33 @@ class ChatProcess(db.Model):
     __tablename__ = 'log_chat_process'
 
     id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
-    query = db.Column(db.Text, nullable=False)
+    question = db.Column(db.Text(collation="utf8mb4_unicode_ci"), nullable=False)
     vector_from_query = db.Column(db.Text, nullable=False)
-    expansion_result = db.Column(db.Text, nullable=False)
+    expansion_result = db.Column(db.Text(collation="utf8mb4_unicode_ci"), nullable=False)
     retrieval_result = db.relationship('RetrievedChunks', backref='chat_process', lazy=True)
-    corrective_result = db.Column(db.Text, nullable=False)
-    final_result = db.Column(db.Text, nullable=False)
+    corrective_prompt = db.Column(db.Text(collation="utf8mb4_unicode_ci"), nullable=False)
+    corrective_result = db.Column(db.Text(collation="utf8mb4_unicode_ci"), nullable=False)
+    generator_prompt = db.Column(db.Text(collation="utf8mb4_unicode_ci"), nullable=False)
+    final_result = db.Column(db.Text(collation="utf8mb4_unicode_ci"), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
 
     def get_retrieval_result(self):
-        return [result.to_dict() for result in self.retrieval_result]
+        sorted_chunks = sorted(
+            self.retrieval_result, 
+            key=lambda x: float(x.similiarity_score) if x.similiarity_score.replace('.', '', 1).isdigit() else float('inf')
+        )
+        return [result.to_dict() for result in sorted_chunks]
     
     def to_dict(self):
         return {
             "id": self.id,
-            "query": self.query,
+            "question": self.question,
+            "vector_from_query": self.vector_from_query,
             "expansion_result": self.expansion_result,
             "retrieval_result": self.get_retrieval_result(),
+            "corrective_prompt": self.corrective_prompt,
             "corrective_result": self.corrective_result,
+            "generator_prompt": self.generator_prompt,
             "final_result": self.final_result,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -192,14 +201,15 @@ class RetrievedChunks(db.Model):
 
     id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
     chat_process_id = db.Column(db.String(100), db.ForeignKey('log_chat_process.id'), nullable=False)
-    chunk = db.Column(db.Text, nullable=False)
+    chunk = db.Column(db.Text(collation="utf8mb4_unicode_ci"), nullable=False)
     vector = db.Column(db.Text, nullable=False)
     similiarity_score = db.Column(db.String(100), nullable=False)
 
     def to_dict(self):
         return {
             "chunk": self.chunk,
-            "similiarity_score": self.similiarity_score
+            "similiarity_score": self.similiarity_score,
+            "vector": self.vector
         }
 
 

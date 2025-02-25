@@ -7,6 +7,7 @@ class CorrectiveAgent:
     def correct(state: AgentState) -> str:
         expanded_question = state['expanded_question']
         prompt = CORRECTIVE_PROMPT.format(question=expanded_question, data=state['raw_context'])
+        state['corrective_prompt'] = prompt
         llm_model = state['llm_model']
 
         try:

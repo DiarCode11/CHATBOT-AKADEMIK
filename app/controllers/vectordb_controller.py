@@ -11,11 +11,14 @@ import math
 import asyncio
 import os
 from datetime import datetime
+from flask_jwt_extended import jwt_required
+from ..utils.authorization import role_required
 
 load_dotenv()
-
 vectordb_controller = Blueprint('vectordb', __name__)
 
+@jwt_required()
+@role_required('admin')
 @vectordb_controller.route('/<page>', methods=['GET'])
 def get_chunks(page):
     page = int(page)
@@ -88,6 +91,9 @@ def get_chunks(page):
         print(traceback.format_exc())  # Menampilkan stack trace lengkap
         return jsonify({"message": "Gagal saat memuat vector db dengan FAISS", "data": None}), 500
 
+
+@jwt_required()
+@role_required('admin')
 @vectordb_controller.route('/generate', methods=['POST'])
 async def generate_vector_db():
     # Ambil JSON
