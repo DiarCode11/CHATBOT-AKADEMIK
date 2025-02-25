@@ -95,6 +95,9 @@ def create_app():
 
     from .controllers.retriever_controller import retriever_controller
     app.register_blueprint(retriever_controller, url_prefix='/retriever')
+
+    from .controllers.chat_history_controller import chat_history_controller
+    app.register_blueprint(chat_history_controller, url_prefix='/chat-history')
     
     #  # Impor dan inisialisasi SocketIO dari file lain
     from .controllers.socket_controller import init_socket_event

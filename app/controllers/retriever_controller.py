@@ -2,9 +2,13 @@ from flask import Blueprint, request, jsonify, session
 from ..models import LLMSetting, db
 from datetime import datetime
 import re
+from flask_jwt_extended import jwt_required
+from ..utils.authorization import role_required
 
 retriever_controller = Blueprint('retriever', __name__)
 
+@jwt_required()
+@role_required('admin')
 @retriever_controller.route('', methods=['GET'])
 def get_latest_setting():
     latest_llm_setting = LLMSetting.query.order_by(LLMSetting.created_at.desc()).first()
@@ -15,6 +19,9 @@ def get_latest_setting():
     
     return jsonify({"message": "Pengaturan terbaru ditemukan", "data": setting}), 200
 
+
+@jwt_required()
+@role_required('admin')
 @retriever_controller.route('', methods=['POST'])
 def add_new_setting():
     data = request.get_json()

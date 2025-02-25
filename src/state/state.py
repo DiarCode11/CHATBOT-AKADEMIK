@@ -13,3 +13,5 @@ class AgentState(TypedDict):
     cleaned_context : Optional[str]= None
     final_answer : Optional[str]= None
     chunks_data : None
+    corrective_prompt : Optional[str]= None
+    generator_prompt : str = None
