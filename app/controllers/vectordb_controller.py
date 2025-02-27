@@ -203,8 +203,6 @@ async def generate_vector_db():
 
     if response['status'] == 'success':
         try:
-
-
             new_setting = EmbedderSetting(
                 chunk_size=chunk_size, 
                 chunk_overlap=chunk_overlap, 

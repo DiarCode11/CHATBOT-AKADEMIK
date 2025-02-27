@@ -1,27 +1,142 @@
 from flask import Blueprint, request, jsonify, session, make_response
-from ..models import Users, db, UserRole
+from ..models import Users, db, UserRole, ModifiedDataset
 from argon2 import PasswordHasher
 from email_validator import validate_email, EmailNotValidError
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_access_cookies, unset_jwt_cookies
 from functools import wraps
+from datetime import datetime, date
+from sqlalchemy.sql import func, case
 from ..utils.authorization import role_required
 
 ph = PasswordHasher()
 user_controller = Blueprint('user', __name__)
 
 # Endpoint untuk menampilkan semua user
-@user_controller.route('/', methods=['GET'])
+@user_controller.route('/all', methods=['GET'])
 @jwt_required()
 @role_required('admin')
-def get_user():
-    users = Users.query.all()
-    return jsonify([user.username for user in users])
+def get_all_user():
+    users_query = Users.query.with_entities(
+        Users,
+        func.count(
+            case((func.date(Users.created_at) == date.today(), 1))
+        ).over().label("new_users_login")
+    ).filter(Users.deleted_at == None).order_by(Users.created_at.desc()).all()
+
+    # Ekstrak hasil
+    users_list = []
+    new_users_login = 0
+
+    for row in users_query:
+        users_list.append(row[0].to_dict())  # Ambil objek Users & konversi ke dict
+        new_users_login = row[1] 
+
+    if not users_list:
+        return jsonify({'message': 'User tidak ditemukan'}), 404
+
+    return jsonify({'message': 'Berhasil menampilkan semua user','data': users_list, 'new_users_login': new_users_login}), 200
 
 @user_controller.route('/admin', methods=['POST'])
 @jwt_required()
 @role_required('admin')
 def check_admin():
     return jsonify({'message': 'Anda terautentikasi sebagai admin', 'status': True}), 200
+
+@user_controller.route('/add', methods=['POST'])
+def add_user_by_admin():
+    data = request.get_json()
+    print("Berhasil mengakses endpoint add user by admin")
+
+    name = data.get('name', None)
+    email = data.get('email', None)
+    password = data.get('password', None)
+    role = data.get('role', None)
+
+    key_list = ['name', 'email', 'role', 'password', 'confirmedPassword']
+    role_list = ['admin', 'user']
+
+    if not data:
+        return jsonify({'message': 'Data tidak boleh kosong'}), 400
+
+    for key in key_list:
+        key_data = data.get(key, None)
+        # Jika data ditemukan
+        if key_data:
+            if key == 'name':
+                if len(key_data) < 4:
+                    return jsonify({'message': 'Nama lengkap minimal 4 karakter'}), 400
+                if any(char.isdigit() for char in key_data):
+                    return jsonify({'message': 'Nama lengkap tidak boleh berisi angka'}), 400
+            elif key == 'email':
+                try:
+                    validate_email(key_data)
+
+                    try:
+                        user_data = Users.query.filter_by(email=key_data, deleted_at=None).first()
+                        if user_data:
+                            return jsonify({'message': 'Email sudah terdaftar'}), 400
+                    except Exception as e:
+                        return jsonify({'message': 'Terjadi kesalahan internal server'}), 500
+                    
+                except EmailNotValidError as e:
+                    return jsonify({'message': 'Email tidak valid'}), 400
+                
+                if (not key_data.endswith('@undiksha.ac.id')) and (not key_data.endswith('@student.undiksha.ac.id')):
+                    return jsonify({'message': 'Email harus menggunakan domain @undiksha.ac.id atau @student.undiksha.ac.id'}), 400
+            elif key == 'role':
+                if key_data not in role_list:
+                    return jsonify({'message': 'Role tidak valid'}), 400
+            elif key == 'password':
+                if len(key_data) < 8:
+                    return jsonify({'message': 'Password minimal 8 karakter'}), 400
+            elif key == 'confirmedPassword':
+                if key_data != password:
+                    return jsonify({'message': 'Password tidak sama'}), 400
+
+        # Jika data tidak ditemukan
+        if not key_data:
+            if key == 'name':
+                return jsonify({'message': 'Nama lengkap tidak boleh kosong'}), 400
+            elif key == 'email':
+                return jsonify({'message': 'Email tidak boleh kosong'}), 400
+            elif key == 'role':
+                return jsonify({'message': 'Role tidak boleh kosong'}), 400
+            elif key == 'password':
+                return jsonify({'message': 'Password tidak boleh kosong'}), 400
+            elif key == 'confirmedPassword':
+                return jsonify({'message': 'Konfirmasi password tidak boleh kosong'}), 400
+
+    try:
+        password_hash = ph.hash(password)
+        new_user = Users(
+            username = name, 
+            email = email, 
+            password=password_hash,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+        users_query = Users.query.with_entities(
+            Users,
+            func.count(
+                case((func.date(Users.created_at) == date.today(), 1))
+            ).over().label("new_users_login")
+        ).filter(Users.deleted_at == None).order_by(Users.created_at.desc()).all()
+
+        # Ekstrak hasil
+        users_list = []
+        new_users_login = 0
+
+        for row in users_query:
+            users_list.append(row[0].to_dict())  # Ambil objek Users & konversi ke dict
+            new_users_login = row[1]  # Ambil jumlah user baru (sama untuk semua baris) 
+
+        return jsonify({'message': 'User berhasil ditambahkan', 'data': users_list, 'new_users_login': new_users_login}), 200   
+    except Exception as e:
+        return jsonify({'message': 'Terjadi kesalahan internal server'}), 500
+    
 
 # Endpoint untuk menambahkan user
 @user_controller.route('/register', methods=['POST'])
@@ -61,7 +176,13 @@ def add_user():
         return jsonify({'message': 'Email sudah terdaftar'}), 400
 
     password_hash = ph.hash(data['password'])
-    new_user = Users(username=data['username'], email=data['email'], password=password_hash)
+    new_user = Users(
+        username=data['username'], 
+        email=data['email'], 
+        password=password_hash,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
     
     try:
         db.session.add(new_user)
@@ -162,11 +283,6 @@ def logout():
     print('logout berhasil')
 
     return response, 200
-
-# Endpoint untuk menambahkan user oleh admin (Backpage)
-@user_controller.route('/register-by-admin', methods=['POST'])
-def add_user_by_admin():
-    pass
 
 @user_controller.route('/delete/<id>', methods=['DELETE'])
 def delete_user(id):

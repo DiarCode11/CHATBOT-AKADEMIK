@@ -56,8 +56,6 @@ def create_app():
     app.config["JWT_COOKIE_SECURE"] = False  # Ubah ke True jika HTTPS
     app.config["JWT_COOKIE_HTTPONLY"] = True
     app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # Ubah ke "None" jika HTTPS
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = True  # Mengaktifkan CSRF Protection di cookie
-    app.config["JWT_CSRF_CHECK_FORM"] = False  # Matikan CSRF check di form (gunakan header)
 
     # Menginisialisasi objek db dan socketio dengan aplikasi Flask
     db.init_app(app)

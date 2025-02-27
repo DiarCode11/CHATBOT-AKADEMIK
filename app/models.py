@@ -26,9 +26,23 @@ class Users(db.Model):
 
     id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
     username = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(120), nullable=False)
     role = db.Column(db.Enum(UserRole), nullable=False, default=UserRole.user)
     password = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=False)
+    deleted_at = db.Column(db.DateTime, nullable=True, default=None)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'role': self.role.value,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None,
+        }
+
 
     def __repr__(self):
         return f"User('{self.username}', '{self.email}')"

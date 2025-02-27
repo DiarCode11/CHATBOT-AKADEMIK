@@ -6,7 +6,7 @@ from datetime import datetime
 import uuid
 import json
 import traceback
-from ..models import EmbedderSetting, LLMSetting, RetrievedChunks, ChatProcess, db
+from ..models import EmbedderSetting, LLMSetting, RetrievedChunks, ChatProcess, ModifiedDataset, db
 
 # Membuat instance SocketIO
 socketio = SocketIO(cors_allowed_origins="*")
@@ -20,8 +20,13 @@ def init_socket_event(socketio):
         print(f"\n{len(set(clients))} Klien unik terhubung.")
         user_amount = len(set(clients))
         total_chat = ChatProcess.query.count()
+        non_updated_dataset_total = ModifiedDataset.query.filter(ModifiedDataset.action != None).count()
         print(f"IP client terhubung: {str(set(clients))}")
-        emit('user_connected', {'amount': user_amount, 'message': 'klien terhubung', 'total_chat': total_chat}, broadcast=True)
+        emit('user_connected', {
+            'amount': user_amount, 
+            'message': 'klien terhubung', 
+            'total_chat': total_chat, 
+        }, broadcast=True)
 
     @socketio.on('disconnect', namespace='/')
     def handle_disconnect():
@@ -72,11 +77,7 @@ def init_socket_event(socketio):
                 chunk = full_response["final_answer"][i:i+length_chars]
                 emit('response', {'chunk': chunk}, room=socket_id)
                 gevent.sleep(0.08)
-
-            print("Data corrective: ", full_response["corrective_prompt"])
-            print("Data generator: ", full_response.keys())
-
-
+                
             chunk_data = full_response["chunks_data"]
             new_chat_process = ChatProcess(
                 id = new_id,
