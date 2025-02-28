@@ -2,9 +2,9 @@ from flask import Blueprint, request, jsonify, session, make_response
 from ..models import Users, db, UserRole, ModifiedDataset
 from argon2 import PasswordHasher
 from email_validator import validate_email, EmailNotValidError
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_access_cookies, unset_jwt_cookies
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_access_cookies, unset_jwt_cookies, get_jwt_identity
 from functools import wraps
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy.sql import func, case
 from ..utils.authorization import role_required
 
@@ -35,6 +35,27 @@ def get_all_user():
         return jsonify({'message': 'User tidak ditemukan'}), 404
 
     return jsonify({'message': 'Berhasil menampilkan semua user','data': users_list, 'new_users_login': new_users_login}), 200
+
+@user_controller.route('/auth', methods=['GET'])
+@jwt_required(locations=['cookies'])
+def check_auth():
+    identity = get_jwt()
+    try:
+        user_data = Users.query.filter_by(id=identity['sub'], deleted_at=None).first()
+
+        user_dict = user_data.to_dict()
+
+        print("Isi user data: ", user_dict['username'])
+
+        if not user_data:
+            return jsonify({'message': 'User tidak ditemukan'}), 404
+
+        print("Isi identity: ", identity)
+        return jsonify({'message': 'User terautentikasi', 'username': user_dict['username'], 'role': user_dict['role'], 'id': user_dict['id']}), 200
+    
+    except Exception as e:
+        print("Posisi error", e)
+        return jsonify({'message': 'Terdapat masalah ketika mengakses database'}), 500
 
 @user_controller.route('/admin', methods=['POST'])
 @jwt_required()
@@ -140,7 +161,7 @@ def add_user_by_admin():
 
 # Endpoint untuk menambahkan user
 @user_controller.route('/register', methods=['POST'])
-def add_user():
+def register():
     data = request.get_json()
 
     print(data)
@@ -196,17 +217,17 @@ def add_user():
             session['role'] = user.role
 
             # Membuat access token dengan user id dan role
-            access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name}, expires_delta=False)
+            access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name, 'username': user.username, 'id': user.id}, expires_delta=False)
 
             # Kirimkan JSON data user
-            response = jsonify({'message': 'Daftar berhasil', 'user': {'username': user.username, 'email': user.email, 'role': user.role.name}, 'auth': True})
+            response = jsonify({'message': 'Daftar berhasil', 'user': {'username': user.username, 'role': user.role.name}, 'auth': True})
 
             # Set access token ke cookies
             set_access_cookies(response, access_token)
 
-            # Tambahkan informasi user ke cookie
-            response.set_cookie('username', user.username, max_age=60*60*24, httponly=False, samesite='Lax')
-            response.set_cookie('role', user.role.name, max_age=60*60*24, httponly=False, samesite='Lax')
+            # # Tambahkan informasi user ke cookie
+            # response.set_cookie('username', user.username, max_age=60*60*24, httponly=False, samesite='Lax')
+            # response.set_cookie('role', user.role.name, max_age=60*60*24, httponly=False, samesite='Lax')
         
         except Exception as e:
             print("Error saat koneksi ke database: ", str(e))
@@ -246,7 +267,7 @@ def login():
         session['role'] = user.role
 
         # Membuat access token dengan user id dan role
-        access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name}, expires_delta=False)
+        access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name, 'username': user.username, 'id': user.id}, expires_delta=False)
 
         # Kirimkan JSON data user
         response = jsonify({'message': 'Login berhasil', 'user': {'username': user.username, 'email': user.email, 'role': user.role.name}, 'auth': True})
@@ -254,9 +275,9 @@ def login():
         # Set access token ke cookies
         set_access_cookies(response, access_token)
 
-        # Tambahkan informasi user ke cookie
-        response.set_cookie('username', user.username, max_age=60*60*24, httponly=False, samesite='Lax')
-        response.set_cookie('role', user.role.name, max_age=60*60*24, httponly=False, samesite='Lax')
+        # # Tambahkan informasi user ke cookie
+        # response.set_cookie('username', user.username, max_age=60*60*24, httponly=False, samesite='Lax')
+        # response.set_cookie('role', user.role.name, max_age=60*60*24, httponly=False, samesite='Lax')
 
         print("berhasil melalui proses  validasi login")
         # Berikan response
