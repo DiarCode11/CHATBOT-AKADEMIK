@@ -291,7 +291,7 @@ def login():
 def logout():
     print(request.headers)
 
-    # session.clear()
+    session.clear()
     print("Mencoba logout")
     
     # Menghapus access token dari cookies
