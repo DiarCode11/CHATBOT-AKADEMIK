@@ -289,9 +289,15 @@ def login():
         return jsonify({'message': 'Email atau password salah'}), 400
     
 @user_controller.route('/logout', methods=['POST'])
-@jwt_required()
+# @jwt_required()
 def logout():
-    session.clear()
+    header_csrf = request.headers.get('X-CSRF-TOKEN')
+    cookie_csrf_token = request.cookies.get("csrf_access_token")
+    print("Header CSRF: ", header_csrf)
+    print("Cookie CSRF: ", cookie_csrf_token)
+
+
+    # session.clear()
     print("Mencoba logout")
     
     # Menghapus access token dari cookies
