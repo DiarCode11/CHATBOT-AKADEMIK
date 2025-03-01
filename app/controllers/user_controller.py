@@ -217,17 +217,13 @@ def register():
             session['role'] = user.role
 
             # Membuat access token dengan user id dan role
-            access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name, 'username': user.username, 'id': user.id}, expires_delta=False)
+            access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name, 'username': user.username, 'id': user.id}, expires_delta=timedelta(hours=1))
 
             # Kirimkan JSON data user
             response = jsonify({'message': 'Daftar berhasil', 'user': {'username': user.username, 'role': user.role.name}, 'auth': True})
 
             # Set access token ke cookies
             set_access_cookies(response, access_token)
-
-            # # Tambahkan informasi user ke cookie
-            # response.set_cookie('username', user.username, max_age=60*60*24, httponly=False, samesite='Lax')
-            # response.set_cookie('role', user.role.name, max_age=60*60*24, httponly=False, samesite='Lax')
         
         except Exception as e:
             print("Error saat koneksi ke database: ", str(e))
@@ -267,17 +263,13 @@ def login():
         session['role'] = user.role
 
         # Membuat access token dengan user id dan role
-        access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name, 'username': user.username, 'id': user.id}, expires_delta=False)
+        access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name, 'username': user.username, 'id': user.id}, expires_delta=timedelta(hours=1))
 
         # Kirimkan JSON data user
         response = jsonify({'message': 'Login berhasil', 'user': {'username': user.username, 'email': user.email, 'role': user.role.name}, 'auth': True})
 
         # Set access token ke cookies
         set_access_cookies(response, access_token)
-
-        # # Tambahkan informasi user ke cookie
-        # response.set_cookie('username', user.username, max_age=60*60*24, httponly=False, samesite='Lax')
-        # response.set_cookie('role', user.role.name, max_age=60*60*24, httponly=False, samesite='Lax')
 
         print("berhasil melalui proses  validasi login")
         # Berikan response
