@@ -22,7 +22,7 @@ class RetrieverAgent:
         chunks_data = []
 
         try:
-            vector_db_path = f"d:/SKRIPSI/CHATBOT AKADEMIK/src/db/{vector_db_name}"
+            vector_db_path = f"src/db/{vector_db_name}"
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
             relevant_response = db.similarity_search_with_score_by_vector(vector_from_query, k=candidates_size)
             faiss_index = db.index
