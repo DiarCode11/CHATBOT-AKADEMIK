@@ -293,6 +293,7 @@ def login():
 def logout():
     header_csrf = request.headers.get('X-CSRF-TOKEN')
     cookie_csrf_token = request.cookies.get("csrf_access_token")
+    print(request.headers)
     print("Header CSRF: ", header_csrf)
     print("Cookie CSRF: ", cookie_csrf_token)
 
