@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session, make_response
-from ..models import Users, db, UserRole, ModifiedDataset
+from ..models import Users, db, UserRole, ModifiedDataset, Action
 from argon2 import PasswordHasher
 from email_validator import validate_email, EmailNotValidError
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_access_cookies, unset_jwt_cookies, get_jwt_identity, get_csrf_token
@@ -16,25 +16,37 @@ user_controller = Blueprint('user', __name__)
 @jwt_required()
 @role_required('admin')
 def get_all_user():
-    users_query = Users.query.with_entities(
-        Users,
-        func.count(
-            case((func.date(Users.created_at) == date.today(), 1))
-        ).over().label("new_users_login")
-    ).filter(Users.deleted_at == None).order_by(Users.created_at.desc()).all()
+    try:
+        users_query = Users.query.with_entities(
+            Users,
+            func.count(
+                case((func.date(Users.created_at) == date.today(), 1))
+            ).over().label("new_users_login")
+        ).filter(Users.deleted_at == None).order_by(Users.created_at.desc()).all()
 
-    # Ekstrak hasil
-    users_list = []
-    new_users_login = 0
+        today = datetime.today().date()
 
-    for row in users_query:
-        users_list.append(row[0].to_dict())  # Ambil objek Users & konversi ke dict
-        new_users_login = row[1] 
+        total_dataset_added = ModifiedDataset.query.filter(
+            ModifiedDataset.action == Action.add,
+            func.date(ModifiedDataset.created_at) == today
+        ).count()
 
-    if not users_list:
-        return jsonify({'message': 'User tidak ditemukan'}), 404
+        # Ekstrak hasil
+        users_list = []
+        new_users_login = 0
 
-    return jsonify({'message': 'Berhasil menampilkan semua user','data': users_list, 'new_users_login': new_users_login}), 200
+        for row in users_query:
+            users_list.append(row[0].to_dict())  # Ambil objek Users & konversi ke dict
+            new_users_login = row[1] 
+
+        if not users_list:
+            return jsonify({'message': 'User tidak ditemukan'}), 404
+
+        return jsonify({'message': 'Berhasil menampilkan semua user','data': users_list, 'new_users_login': new_users_login, 'total_dataset_added': total_dataset_added, 'total_dataset_added': total_dataset_added}), 200
+
+    except Exception as e:
+        print("Error get all user: ", e)
+        return jsonify({'message': 'Terdapat masalah ketika mengakses database'}), 500
 
 @user_controller.route('/auth', methods=['GET'])
 @jwt_required(locations=['cookies'])
