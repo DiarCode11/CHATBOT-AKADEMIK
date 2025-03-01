@@ -270,9 +270,13 @@ def login():
         # Membuat access token dengan user id dan role
         access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name, 'username': user.username, 'id': user.id}, expires_delta=timedelta(hours=1))
 
-        # Kirimkan JSON data user
-        response = jsonify({'message': 'Login berhasil', 'user': {'username': user.username, 'email': user.email, 'role': user.role.name}, 'auth': True})
+        csrf_token = get_csrf_token(access_token)
+        print("CSRF token: ", csrf_token)
+        print("Access token: ", access_token)
 
+        # Kirimkan JSON data user
+        response = jsonify({'message': 'Login berhasil', 'user': {'username': user.username, 'email': user.email, 'role': user.role.name}, 'auth': True, 'csrf_token': csrf_token})
+        
         # Set access token ke cookies
         set_access_cookies(response, access_token)
 
