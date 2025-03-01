@@ -47,7 +47,7 @@ def get_chunks(page):
         
         embedder = OpenAIEmbeddings(model=setting["embedder"])
         
-        vector_db_path = f"d:/SKRIPSI/CHATBOT AKADEMIK/src/db/{vector_db_name}"
+        vector_db_path = f"src/db/{vector_db_name}"
 
         if not os.path.exists(vector_db_path):
             return jsonify({"message": "terjadi kesalahan saat mengakses vector db, mohon buat vector db ulang"}), 404
