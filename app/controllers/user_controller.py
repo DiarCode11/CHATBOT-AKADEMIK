@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session, make_response
 from ..models import Users, db, UserRole, ModifiedDataset
 from argon2 import PasswordHasher
 from email_validator import validate_email, EmailNotValidError
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_access_cookies, unset_jwt_cookies, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_access_cookies, unset_jwt_cookies, get_jwt_identity, get_csrf_token
 from functools import wraps
 from datetime import datetime, date, timedelta
 from sqlalchemy.sql import func, case
@@ -218,9 +218,14 @@ def register():
 
             # Membuat access token dengan user id dan role
             access_token = create_access_token(identity=user.id, additional_claims={'role': user.role.name, 'username': user.username, 'id': user.id}, expires_delta=timedelta(hours=1))
+            print("Access token: ", access_token)
+            csrf_token = get_csrf_token(access_token)
+            print("CSRF token: ", csrf_token)
 
             # Kirimkan JSON data user
             response = jsonify({'message': 'Daftar berhasil', 'user': {'username': user.username, 'role': user.role.name}, 'auth': True})
+
+            response.headers["X-CSRF-TOKEN"] = csrf_token
 
             # Set access token ke cookies
             set_access_cookies(response, access_token)
@@ -290,8 +295,6 @@ def logout():
 
     # Menghapus cookie dengan mengatur waktu kedaluwarsa ke waktu yang sudah lewat
     response.set_cookie('access_token', '', expires=0, httponly=True, samesite='Lax')
-    response.set_cookie('username', '', expires=0, httponly=False, samesite='Lax')
-    response.set_cookie('role', '', expires=0, httponly=False, samesite='Lax')
 
     print('logout berhasil')
 
