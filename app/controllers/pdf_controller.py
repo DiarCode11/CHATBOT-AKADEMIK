@@ -114,6 +114,9 @@ def add_pdf_dataset():
 
     # Simpan ke database
     try:
+        if not os.path.exists("dataset"):
+            os.makedirs("dataset")
+
         # Simpan file ke folder
         file.save(os.path.join("dataset", filename))
 
