@@ -292,6 +292,7 @@ def login():
 @jwt_required()
 def logout():
     session.clear()
+    print("Mencoba logout")
     
     # Menghapus access token dari cookies
     response = make_response(jsonify({'message': 'Logout berhasil', 'auth': False}))
