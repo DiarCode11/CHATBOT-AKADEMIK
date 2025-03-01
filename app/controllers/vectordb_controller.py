@@ -148,6 +148,8 @@ async def generate_vector_db():
     # Ekstrak dataset PDF ke dalam list Document
     documents = await asyncio.to_thread(loader.load) 
 
+    print("Isi dokumen PDF: ", documents)
+
     # Ubah data dari database ke bentuk dict dengan nama file sebagai key nya
     # Tujuannya untuk membandingkan dengan file pdf yang ada di folder dataset apakah sudah ada atau tidak
     pdf_dict = {
@@ -167,6 +169,7 @@ async def generate_vector_db():
 
         # Jika file di folder tidak terdaftar di database maka skip ke iterasi selanjutnya
         if filename not in pdf_dict:
+            print(f"File {filename} tidak ditemukan di database")
             continue
 
         metadata = pdf_dict[filename]
