@@ -165,7 +165,8 @@ async def generate_vector_db():
 
     for doc in documents:
         # Ambil nama file dari filepath nya
-        filename = doc.metadata['source'].split("\\")[-1] 
+        # filename = doc.metadata['source'].split("\\")[-1] 
+        filename = os.path.basename(doc.metadata['source'])
 
         # Jika file di folder tidak terdaftar di database maka skip ke iterasi selanjutnya
         if filename not in pdf_dict:
