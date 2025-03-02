@@ -28,7 +28,7 @@ DB_URI = f'mysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 # Inisialisasi objek SQLAlchemy dan SocketIO
 db = SQLAlchemy()
-socketio = SocketIO(async_mode='gevent', cors_allowed_origins="*")
+socketio = SocketIO(async_mode='gevent', cors_allowed_origins="*", )
 
 # Inisialisasi JWTManager
 jwt = JWTManager()
@@ -51,7 +51,7 @@ def create_app():
     Session(app)
 
     # Konfigurasi JWT
-    app.config["JWT_SECRET_KEY"] = "supersecretkey"
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
     app.config["JWT_SESSION_COOKIE"] = False  # Gunakan masa kedaluwarsa eksplisit untuk access token
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Access token berlaku 10 menit
