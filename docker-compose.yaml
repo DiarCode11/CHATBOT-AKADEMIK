@@ -11,16 +11,3 @@ services:
     env_file:
       - .env
 
-  db:
-    image: mysql:8
-    container_name: mysql_db
-    restart: always
-    env_file:
-      - .env
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-volumes:
-  mysql_data:
