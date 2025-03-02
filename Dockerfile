@@ -1,11 +1,14 @@
 # Gunakan image Python terbaru
-FROM python:3.11
+FROM python:3.10
 
 # Set direktori kerja dalam container
-WORKDIR /app_chatbot
+WORKDIR /app
 
 # Salin semua file ke dalam container
 COPY . .
+
+# Buat virtual environment
+
 
 # Install dependencies dari requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
