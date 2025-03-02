@@ -6,8 +6,6 @@ services:
     container_name: backend_app
     ports:
       - "5001:5001"  
-    depends_on:
-      - db
     env_file:
       - .env
 
