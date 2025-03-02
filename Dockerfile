@@ -7,8 +7,8 @@ WORKDIR /app
 # Salin semua file ke dalam container
 COPY . .
 
-# Buat virtual environment
-
+# Expose port (sesuai dengan yang dipakai Flask/FastAPI)
+EXPOSE 5001
 
 # Install dependencies dari requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
