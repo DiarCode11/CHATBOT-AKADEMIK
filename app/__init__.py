@@ -26,9 +26,16 @@ DB_PORT = os.getenv('DB_PORT')
 # Membuat string URI untuk database
 DB_URI = f'mysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
+# Ambil daftar domain/IP dari .env
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
+
+# Jika ada lebih dari satu IP/Domain, ubah menjadi list
+if "," in allowed_origins:
+    allowed_origins = allowed_origins.split(",")
+
 # Inisialisasi objek SQLAlchemy dan SocketIO
 db = SQLAlchemy()
-socketio = SocketIO(async_mode='gevent', cors_allowed_origins="*", )
+socketio = SocketIO(async_mode='gevent', cors_allowed_origins=allowed_origins)
 
 # Inisialisasi JWTManager
 jwt = JWTManager()
@@ -38,7 +45,7 @@ def create_app():
     app = Flask(__name__)
 
     # Mengaktifkan CORS
-    CORS(app, supports_credentials=True)
+    CORS(app, supports_credentials=True, origins=allowed_origins)
     
     # Menambahkan konfigurasi database ke aplikasi
     app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
