@@ -311,7 +311,9 @@ def logout():
     unset_jwt_cookies(response)
 
     # Menghapus cookie dengan mengatur waktu kedaluwarsa ke waktu yang sudah lewat
-    response.set_cookie('access_token', '', expires=0, httponly=True, samesite='Lax')
+    response.delete_cookie('access_token_cookie')
+    response.delete_cookie('csrf_access_token')
+    response.delete_cookie('session')
 
     print('logout berhasil')
 
