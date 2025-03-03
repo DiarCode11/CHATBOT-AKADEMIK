@@ -10,3 +10,4 @@ dataset/
 test.py
 migrations/
 flask_session/
+db/

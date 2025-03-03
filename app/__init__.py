@@ -28,7 +28,7 @@ DB_URI = f'mysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 # Inisialisasi objek SQLAlchemy dan SocketIO
 db = SQLAlchemy()
-socketio = SocketIO(async_mode='gevent', cors_allowed_origins="*")
+socketio = SocketIO(async_mode='gevent', cors_allowed_origins="*", )
 
 # Inisialisasi JWTManager
 jwt = JWTManager()
@@ -51,11 +51,13 @@ def create_app():
     Session(app)
 
     # Konfigurasi JWT
-    app.config["JWT_SECRET_KEY"] = "supersecretkey"
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+    app.config["JWT_SESSION_COOKIE"] = False  # Gunakan masa kedaluwarsa eksplisit untuk access token
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Access token berlaku 10 menit
     app.config["JWT_COOKIE_SECURE"] = False  # Ubah ke True jika HTTPS
     app.config["JWT_COOKIE_HTTPONLY"] = True
-    app.config["JWT_COOKIE_SAMESITE"] = "Lax"
+    app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # Ubah ke "None" jika HTTPS
 
     # Menginisialisasi objek db dan socketio dengan aplikasi Flask
     db.init_app(app)
@@ -65,6 +67,7 @@ def create_app():
     @app.errorhandler(NoAuthorizationError)
     @app.errorhandler(JWTDecodeError)
     def handle_auth_error(e):
+        print("Posisi errornya: ", e)
         print("terdeteksi akses tidak valid")
         return jsonify({"message": "Akses tidak valid"}), 401
 
@@ -74,6 +77,10 @@ def create_app():
 
     # Inisialisasi migrasi database
     migrate = Migrate(app, db)
+
+    @app.route('/test', methods=['GET'])
+    def test_connection():
+        return jsonify({"message": "Server is running"}), 200
 
     # Impor blueprint setelah inisialisasi db
     from .controllers.user_controller import user_controller
@@ -87,6 +94,12 @@ def create_app():
 
     from .controllers.vectordb_controller import vectordb_controller
     app.register_blueprint(vectordb_controller, url_prefix='/vectordb')
+
+    from .controllers.retriever_controller import retriever_controller
+    app.register_blueprint(retriever_controller, url_prefix='/retriever')
+
+    from .controllers.chat_history_controller import chat_history_controller
+    app.register_blueprint(chat_history_controller, url_prefix='/chat-history')
     
     #  # Impor dan inisialisasi SocketIO dari file lain
     from .controllers.socket_controller import init_socket_event

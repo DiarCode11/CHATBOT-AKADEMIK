@@ -11,6 +11,10 @@ def clean_text(text: str):
 
     return text
 
+def remove_non_ascii(text):
+    """Menghapus semua karakter non-ASCII dari teks."""
+    return ''.join(char for char in text if ord(char) < 128)
+
 # Mengambil konten HTML dari halaman
 def scrape(url):
     try:
@@ -26,7 +30,9 @@ def scrape(url):
                 # Clean result
                 clean_result = clean_text(result)
 
-                return {"status": "success", "message": "Scraping berhasil"}, clean_result
+                clean_from_non_ascii = remove_non_ascii(clean_result)
+
+                return {"status": "success", "message": "Scraping berhasil"}, clean_from_non_ascii
             else:
                 return {"status": "failed", "message": "Tag <main> tidak ditemukan dalam halaman."}, None
         else:
@@ -35,6 +41,8 @@ def scrape(url):
     except Exception as e:
         print("Terjadi kesalahan saat mengambil halaman:", str(e))
         return {"status": "failed", "message": "Halaman web tersebut tidak dapat discrap"}, None
+    
+
 
 # if __name__ == "__main__":
 #     url = "https://fe.undiksha.ac.id/profil/sejarah-singkat/"

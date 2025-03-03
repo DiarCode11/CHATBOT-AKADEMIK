@@ -4,9 +4,12 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
+from app.utils.get_overlap import find_overlap
 from dotenv import load_dotenv
 from datetime import datetime
+from app.models import Chunks
 import pandas as pd
+import numpy as np
 import os
 import uuid
 
@@ -133,21 +136,53 @@ def create_db(csv_path: str, dest_path: str):
 
     print("3. Database berhasil di buat")
 
-def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int):    
+def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, embedding_model: str):    
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
-        separators=["\n\n"]
     )
 
     chunks = text_splitter.split_documents(docs)
 
+    for index, doc in enumerate(chunks):
+        doc.metadata["index"] = index
+
     print('text berhasil di split')
 
-    EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=EMBEDDING_MODEL)
+    EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=embedding_model)
+
+    data = []
 
     try: 
         vector_db = FAISS.from_documents(chunks, EMBEDDER)
+        faiss_index = vector_db.index
+        total_vector = faiss_index.ntotal
+
+        items_per_page = 5
+        data = []
+
+        for i in range(0, items_per_page):
+            vector = faiss_index.reconstruct(i)
+            doc = vector_db.docstore.search(vector_db.index_to_docstore_id[i])
+
+            overlap = None
+            
+            if i > 0 and i < items_per_page - 1 :
+                prev_doc = vector_db.docstore.search(vector_db.index_to_docstore_id[i-1])
+                if doc.metadata["page"] == prev_doc.metadata["page"]:
+                    overlap = find_overlap(prev_doc.page_content, doc.page_content)
+
+            data.append(
+                {
+                    "index": i,
+                    # "vector": str(vector),
+                    "vector": str(vector.tolist()),
+                    "chunk": doc.page_content,
+                    "metadata": doc.metadata,
+                    "overlap": overlap
+                }
+            )
+
 
         if not os.path.exists("src/db"):
             os.makedirs("src/db")
@@ -157,11 +192,14 @@ def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int):
         db_name = f"db_{timestamp}"
 
         vector_db.save_local(f"src/db/{db_name}")
+        print()
 
-        return {"status": "success", "message": f"Database {db_name} berhasil dibuat"}
+        return {"status": "success", "message": f"Database {db_name} berhasil dibuat", "db_name": db_name, "data": data, "total_chunk": total_vector}
     
     except Exception as e:
-        print(e)
+        import traceback
+        print("Error ketika membuat FAISS DB: ", str(e))
+        print(traceback.format_exc()) 
         return {"status": "failed", "message": "Terjadi kesalahan saat membuat database"}
 
 

@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: backend_app
+    ports:
+      - "5001:5001"  
+    env_file:
+      - .env
+

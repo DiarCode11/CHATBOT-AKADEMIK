@@ -10,27 +10,40 @@ class RetrieverAgent:
         # Load embedding model
         load_dotenv()
 
-        EMBEDDING_MODEL = os.getenv('EMBEDDING_MODEL')
+        embedder = state["embedder_model"]
+        vector_db_name = state["vector_db_name"]
+        candidates_size = state['candidates_size']
 
-        embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
-
+        embeddings = OpenAIEmbeddings(model=embedder)
         query = state["expanded_question"]
+        vector_from_query = embeddings.embed_query(query)
+        state["vector_from_query"] = vector_from_query
+
+        chunks_data = []
 
         try:
-            vector_db_path = "d:/SKRIPSI/CHATBOT AKADEMIK/src/db/db_db_20250210_142509"
-            
+            vector_db_path = f"src/db/{vector_db_name}"
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
-        
-            relevant_response = db.similarity_search(query, k=15)
+            relevant_response = db.similarity_search_with_score_by_vector(vector_from_query, k=candidates_size)
+            faiss_index = db.index
+
+            for doc, score in relevant_response:
+                vector = faiss_index.reconstruct(doc.metadata['index'])
+                chunks = {
+                    "chunk": doc,
+                    "score": score,
+                    "vector": vector
+                }
+                chunks_data.append(chunks)
+            
+            state["chunks_data"] = chunks_data
 
             print("Relevant response: ", relevant_response)
+            state["raw_context"] = relevant_response
+            print(len(state["raw_context"]))
+            print("-- RETRIEVER AGENT --\n\n")
+            return state
 
         except Exception as e:
             print("Vector database not found")
-            print(e)
-
-        state["raw_context"] = relevant_response
-
-        print("-- RETRIEVER AGENT --\n\n")
-
-        return state
+            print("Error di Retriever Agent: ", str(e))

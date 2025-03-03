@@ -1,12 +1,13 @@
 from flask import Blueprint, request, jsonify, session, make_response
-from ..models import UrlDatasets, db
+from ..models import UrlDatasets, ModifiedDataset, FileType, Action, db
 from tools.api_tools import validate_file, validate_json
 from werkzeug.utils import secure_filename
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt, set_access_cookies, unset_jwt_cookies
 from datetime import datetime
 from ..utils.authorization import role_required
 from ..utils.form_validation import *
-from ..utils.scraper import scrape
+from ..utils.scraper import scrape, remove_non_ascii
+from sqlalchemy import func
 import os
 import uuid
 
@@ -16,23 +17,45 @@ link_controller = Blueprint('link', __name__)
 @role_required('admin')
 @link_controller.route('/link', methods=['GET'])
 def get_link_dataset():
-    dataset = UrlDatasets.query.filter(UrlDatasets.deleted_at.is_(None)).all()
-    print(dataset)
+    try:
+        dataset = UrlDatasets.query.filter(UrlDatasets.deleted_at.is_(None)).all()
+        print(dataset)
 
-    result = [
-        {
-            "id": data.id,
-            "url": data.url,
-            "title": data.title,
-            "year": data.year,
-            "extracted_text": data.extracted_text,
-            "created_at": data.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated_at": data.updated_at.strftime("%Y-%m-%d %H:%M:%S")
-        }
-        for data in dataset
-    ]
+        result = [
+            {
+                "id": data.id,
+                "url": data.url,
+                "title": data.title,
+                "year": data.year,
+                "extracted_text": data.extracted_text,
+                "created_at": data.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "updated_at": data.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            for data in dataset
+        ]
 
-    return jsonify({"status": "success", "data": result}), 200
+        # Buat subquery untuk mendapatkan nilai maksimum created_at per file_id
+        subquery = db.session.query(
+            ModifiedDataset.file_id,
+            func.max(ModifiedDataset.created_at).label("max_created_at")
+        ).filter(
+            (ModifiedDataset.file_type == FileType.url) & (ModifiedDataset.action != None)
+        ).group_by(ModifiedDataset.file_id).subquery()
+
+        # Join dengan tabel ModifiedDataset berdasarkan file_id dan created_at yang sama dengan nilai maksimum
+        not_updated_url = ModifiedDataset.query.join(
+            subquery,
+            (ModifiedDataset.file_id == subquery.c.file_id) &
+            (ModifiedDataset.created_at == subquery.c.max_created_at)
+        ).order_by(ModifiedDataset.created_at.desc()).all()
+
+        not_updated_url_list = [data.to_dict() for data in not_updated_url]
+
+        return jsonify({"status": "success", "data": result, "not_updated_url": not_updated_url_list}), 200
+    
+    except Exception as e:
+        print(e)
+        return jsonify({"status": "failed", "message": "Terjadi kesalahan saat mengambil data"}), 500
 
 @jwt_required
 @role_required('admin')
@@ -92,8 +115,11 @@ def add_link_dataset():
     if not data["text_scraped"]:
         return jsonify({"status": "failed", "message": "Lakukan scraping terlebih dahulu"}), 400
     
+    
     try:
+        new_id = str(uuid.uuid4())
         new_dataset = UrlDatasets(
+            id=new_id,
             title=data['title'], 
             url=data['link'], 
             year=data['year'], 
@@ -102,14 +128,40 @@ def add_link_dataset():
             updated_at=datetime.now(),
             created_by_id=session['user_id']
         )
+
+        new_history = ModifiedDataset(
+            file_id=new_id,
+            file_type=FileType.url,
+            action=Action.add,
+            modified_by_id=session['user_id'],
+            created_at=datetime.now()
+        )
+
         db.session.add(new_dataset)
+        db.session.add(new_history)
         db.session.commit()
+
+        # Buat subquery untuk mendapatkan nilai maksimum created_at per file_id
+        subquery = db.session.query(
+            ModifiedDataset.file_id,
+            func.max(ModifiedDataset.created_at).label("max_created_at")
+        ).filter(
+            (ModifiedDataset.file_type == FileType.url) & (ModifiedDataset.action != None)
+        ).group_by(ModifiedDataset.file_id).subquery()
+
+        # Join dengan tabel ModifiedDataset berdasarkan file_id dan created_at yang sama dengan nilai maksimum
+        not_updated_url = ModifiedDataset.query.join(
+            subquery,
+            (ModifiedDataset.file_id == subquery.c.file_id) &
+            (ModifiedDataset.created_at == subquery.c.max_created_at)
+        ).order_by(ModifiedDataset.created_at.desc()).all()
+
+        not_updated_url_list = [data.to_dict() for data in not_updated_url]
+
+        return jsonify({"status": "success", "message": "Data berhasil disimpan", "data": new_dataset.to_dict(), "not_updated_url": not_updated_url_list}), 200
     except Exception as e:
         print(e)
         return jsonify({"status": "failed", "message": "Terjadi kesalahan saat menyimpan data"}), 500
-    
-    print(new_dataset.to_dict())
-    return jsonify({"status": "success", "message": "success", "data": new_dataset.to_dict()}), 200
 
 @jwt_required
 @role_required('admin')
@@ -161,11 +213,38 @@ def update_link_dataset(id):
         dataset.year = data['year']
         dataset.extracted_text = data['extracted_text']
         dataset.updated_at = datetime.now()
+
+        new_history = ModifiedDataset(
+            file_id=id,
+            file_type=FileType.url,
+            action=Action.update,
+            modified_by_id=session['user_id'],
+            created_at=datetime.now()
+        )
+
+        db.session.add(new_history)
         db.session.commit()
+
+        # Buat subquery untuk mendapatkan nilai maksimum created_at per file_id
+        subquery = db.session.query(
+            ModifiedDataset.file_id,
+            func.max(ModifiedDataset.created_at).label("max_created_at")
+        ).filter(
+            (ModifiedDataset.file_type == FileType.url) & (ModifiedDataset.action != None)
+        ).group_by(ModifiedDataset.file_id).subquery()
+
+        # Join dengan tabel ModifiedDataset berdasarkan file_id dan created_at yang sama dengan nilai maksimum
+        not_updated_url = ModifiedDataset.query.join(
+            subquery,
+            (ModifiedDataset.file_id == subquery.c.file_id) &
+            (ModifiedDataset.created_at == subquery.c.max_created_at)
+        ).order_by(ModifiedDataset.created_at.desc()).all()
+
+        not_updated_url_list = [data.to_dict() for data in not_updated_url]
 
         print("Isi dataset: ", dataset.to_dict())
 
-        return jsonify({"status": "success", "message": "Data berhasil diperbarui", "data_updated": dataset.to_dict()}), 200
+        return jsonify({"status": "success", "message": "Data berhasil diperbarui", "data_updated": dataset.to_dict(), "not_updated_url": not_updated_url_list}), 200
     except Exception as e:
         print(e)
         return jsonify({"status": "failed", "message": "Terjadi kesalahan saat memperbarui data"}), 500
@@ -178,8 +257,36 @@ def delete_link_dataset(id):
             return jsonify({"status": "failed", "message": "Data tidak ditemukan"}), 404
         
         dataset.deleted_at = datetime.now()
+
+        new_history = ModifiedDataset(
+            file_id=id,
+            file_type=FileType.url,
+            action=Action.delete,
+            modified_by_id=session['user_id'],
+            created_at=datetime.now()
+        )
+
+        db.session.add(new_history)
         db.session.commit()
-        return jsonify({"status": "success", "message": "Data berhasil dihapus"}), 200
+
+        # Buat subquery untuk mendapatkan nilai maksimum created_at per file_id
+        subquery = db.session.query(
+            ModifiedDataset.file_id,
+            func.max(ModifiedDataset.created_at).label("max_created_at")
+        ).filter(
+            (ModifiedDataset.file_type == FileType.url) & (ModifiedDataset.action != None)
+        ).group_by(ModifiedDataset.file_id).subquery()
+
+        # Join dengan tabel ModifiedDataset berdasarkan file_id dan created_at yang sama dengan nilai maksimum
+        not_updated_url = ModifiedDataset.query.join(
+            subquery,
+            (ModifiedDataset.file_id == subquery.c.file_id) &
+            (ModifiedDataset.created_at == subquery.c.max_created_at)
+        ).order_by(ModifiedDataset.created_at.desc()).all()
+
+        not_updated_url_list = [data.to_dict() for data in not_updated_url]
+
+        return jsonify({"status": "success", "message": "Data berhasil dihapus", "not_updated_url": not_updated_url_list}), 200
     except Exception as e:
         print(e)
         return jsonify({"status": "failed", "message": "Terjadi kesalahan saat menghapus data"}), 500
