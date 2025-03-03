@@ -62,9 +62,9 @@ def create_app():
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
     app.config["JWT_SESSION_COOKIE"] = False  # Gunakan masa kedaluwarsa eksplisit untuk access token
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Access token berlaku 10 menit
-    app.config["JWT_COOKIE_SECURE"] = False  # Ubah ke True jika HTTPS
+    app.config["JWT_COOKIE_SECURE"] = True  # Ubah ke True jika HTTPS
     app.config["JWT_COOKIE_HTTPONLY"] = True
-    app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # Ubah ke "None" jika HTTPS
+    app.config["JWT_COOKIE_SAMESITE"] = "None"  # Ubah ke "None" jika HTTPS
 
     # Menginisialisasi objek db dan socketio dengan aplikasi Flask
     db.init_app(app)
