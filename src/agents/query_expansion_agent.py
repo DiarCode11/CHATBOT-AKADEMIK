@@ -72,6 +72,9 @@ class QueryExpansionAgent:
 
         state['expanded_question'] = expanded_question
 
+        print("Embedder: ", state["embedder_model"])
+        print("Vector DB: ", state["vector_db_name"])
+
         print("Original question: ", question)
         print("Expanded question: ", expanded_question)
 

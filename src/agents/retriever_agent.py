@@ -4,45 +4,46 @@ from dotenv import load_dotenv
 from src.state import AgentState
 import os
 
-
 class RetrieverAgent:
     @staticmethod
     def similiarity_search(state: AgentState):
         # Load embedding model
         load_dotenv()
 
-        EMBEDDING_MODEL = os.getenv('EMBEDDING_MODEL')
+        embedder = state["embedder_model"]
+        vector_db_name = state["vector_db_name"]
+        candidates_size = state['candidates_size']
 
-        embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
-
+        embeddings = OpenAIEmbeddings(model=embedder)
         query = state["expanded_question"]
+        vector_from_query = embeddings.embed_query(query)
+        state["vector_from_query"] = vector_from_query
+
+        chunks_data = []
 
         try:
-            vector_db_path = os.path.join(os.path.dirname(__file__), "..", "..", "vector_db")
+            vector_db_path = f"src/db/{vector_db_name}"
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)
-        
-            relevant_response = db.similarity_search_with_relevance_scores(query, k=15)
+            relevant_response = db.similarity_search_with_score_by_vector(vector_from_query, k=candidates_size)
+            faiss_index = db.index
+
+            for doc, score in relevant_response:
+                vector = faiss_index.reconstruct(doc.metadata['index'])
+                chunks = {
+                    "chunk": doc,
+                    "score": score,
+                    "vector": vector
+                }
+                chunks_data.append(chunks)
+            
+            state["chunks_data"] = chunks_data
+
             print("Relevant response: ", relevant_response)
+            state["raw_context"] = relevant_response
+            print(len(state["raw_context"]))
+            print("-- RETRIEVER AGENT --\n\n")
+            return state
 
         except Exception as e:
             print("Vector database not found")
-            print(e)
-
-        # responses = [chunk[0].page_content for chunk in relevant_response]
-        # return responses
-        # print("Relevant response: ", relevant_response)
-
-        data_source = [item[0].metadata['description'] for item in relevant_response]
-
-        unique_data_source = []
-        for item in data_source:
-            if item not in unique_data_source:
-                unique_data_source.append(item)
-        data_source = unique_data_source
-
-        state["raw_context"] = [{"informasi": item[0].page_content, "tahun publikasi informasi": item[0].metadata["year"]} for item in relevant_response]
-        state["data_source"] = data_source
-
-        print("-- RETRIEVER AGENT --\n\n")
-
-        return state
+            print("Error di Retriever Agent: ", str(e))
