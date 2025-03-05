@@ -1,7 +1,7 @@
 import gevent
 from flask_socketio import SocketIO, emit
 from flask import Flask, request, jsonify, session
-from graph import build_graph
+from graph import build_graph, build_naive_rag
 from datetime import datetime
 import uuid
 import json
@@ -40,6 +40,7 @@ def init_socket_event(socketio):
     @socketio.on('send_message')
     def handle_message(data):
         socket_id = request.sid
+        print("Data terkirim: ", data)
         latest_embedder_setting = EmbedderSetting.query.order_by(EmbedderSetting.created_at.desc()).first()
         latest_llm_setting = LLMSetting.query.order_by(LLMSetting.created_at.desc()).first()
 
@@ -64,19 +65,25 @@ def init_socket_event(socketio):
 
         try:
             new_id = str(uuid.uuid4())
-            full_response = build_graph(
-                question = query, 
-                embedder_model = embedder, 
-                vector_db_name = vector_db_name,
-                llm_model = llm_model,
-                candidates_size = candidates_size
-            )
 
-            length_chars: int = 4
-            for i in range(0, len(full_response["final_answer"]), length_chars):
-                chunk = full_response["final_answer"][i:i+length_chars]
-                emit('response', {'chunk': chunk}, room=socket_id)
-                gevent.sleep(0.08)
+            if 'Corrective-RAG' in data.get('mode'):
+                full_response = build_graph(
+                    question = query, 
+                    embedder_model = embedder, 
+                    vector_db_name = vector_db_name,
+                    llm_model = llm_model,
+                    candidates_size = candidates_size
+                )
+
+            if 'Naive-RAG' in data.get('mode'):
+                print(data.get('mode'))
+                full_response = build_naive_rag(
+                    question=query,
+                    embedder_model = embedder, 
+                    vector_db_name = vector_db_name,
+                    llm_model = llm_model,
+                    candidates_size = candidates_size
+                )
                 
             chunk_data = full_response["chunks_data"]
             new_chat_process = ChatProcess(
@@ -110,9 +117,15 @@ def init_socket_event(socketio):
             db.session.bulk_save_objects(new_retrieved_chunks)
             db.session.commit()
 
+            length_chars: int = 4
+            for i in range(0, len(full_response["final_answer"]), length_chars):
+                chunk = full_response["final_answer"][i:i+length_chars]
+                emit('response', {'chunk': chunk}, room=socket_id)
+                gevent.sleep(0.08)
+
         except Exception as e:
             traceback.print_exc()
-            print('Terdapat error ', str(e))
+            print('\n\nTerdapat error ', str(e))
             error_response = "Sepertinya ada masalah dengan internal server. Mohon tunggu beberapa saat untuk maintenance"
             
             length_chars: int = 4

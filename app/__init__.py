@@ -35,7 +35,7 @@ if "," in allowed_origins:
 
 # Inisialisasi objek SQLAlchemy dan SocketIO
 db = SQLAlchemy()
-socketio = SocketIO(async_mode='gevent', cors_allowed_origins=allowed_origins)
+socketio = SocketIO(async_mode='gevent', cors_allowed_origins="*")
 
 # Inisialisasi JWTManager
 jwt = JWTManager()
@@ -45,7 +45,7 @@ def create_app():
     app = Flask(__name__)
 
     # Mengaktifkan CORS
-    CORS(app, supports_credentials=True, origins=allowed_origins)
+    CORS(app, supports_credentials=True, origins="*")
     
     # Menambahkan konfigurasi database ke aplikasi
     app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
