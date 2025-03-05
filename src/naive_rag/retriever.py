@@ -38,8 +38,8 @@ class Retriever:
             state["chunks_data"] = chunks_data
 
             print("Relevant response: ", relevant_response)
-            state["context"] = relevant_response
-            print(len(state["context"]))
+            state["cleaned_context"] = relevant_response
+            print(len(state["cleaned_context"]))
             print("-- RETRIEVER AGENT --\n\n")
             return state
 
