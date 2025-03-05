@@ -29,11 +29,12 @@ def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_mod
     print(result["final_answer"])
 
     return result
+
+def build_naive_rag():
+     
     
 
 
-# data = build_graph("siapa rektor undiksha", "db_20250221_000015", "text-embedding-3-small", "gpt-4o-mini", 5)
-# print(data)
 
 
         

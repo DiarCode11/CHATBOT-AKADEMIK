@@ -10,6 +10,7 @@ class AgentState(TypedDict):
     expanded_question : Optional[str]= None
     vector_from_query : Optional[str]= None
     raw_context : Optional[str]= None
+    context : Optional[str]= None
     cleaned_context : Optional[str]= None
     final_answer : Optional[str]= None
     chunks_data : None
