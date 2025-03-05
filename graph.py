@@ -1,6 +1,8 @@
 from langgraph.graph import END, START, StateGraph
 from src.state import AgentState
 from src.agents import QueryExpansionAgent, RetrieverAgent, CorrectiveAgent, GeneratorAgent
+from src.naive_rag.retriever import Retriever
+from src.naive_rag.generator import Generator 
 
 def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_model: str, candidates_size: int):
     workflow = StateGraph(AgentState)
@@ -29,11 +31,48 @@ def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_mod
     print(result["final_answer"])
 
     return result
+
+def build_naive_rag(question: str, vector_db_name: str, embedder_model: str, llm_model: str, candidates_size: int):
+    workflow = StateGraph(AgentState)
+
+    # Add Nodes
+    workflow.add_node("retriever", Retriever.similiarity_search)
+    workflow.add_node("generator", Generator.generate)
+
+    # Add Edge
+    workflow.add_edge(START, "retriever")
+    workflow.add_edge("retriever", "generator")
+    workflow.add_edge("generator", END)
+
+    graph = workflow.compile()
+    result = graph.invoke({
+        "question": question, 
+        "vector_db_name": vector_db_name, 
+        "embedder_model": embedder_model, 
+        "llm_model": llm_model,
+        "candidates_size": candidates_size
+    })
+
+    print(result["final_answer"])
+
+    return result
+
+# conf = {
+#     "question": "berikan mata kuliah di prodi pendidikan teknik informatika",
+#     "vector_db_name": "db_20250223_203128",
+#     "embedder_model": "text-embedding-3-small",
+#     "llm_model": "gpt-4o-mini",
+#     "candidates_size": 15
+# }
+
+# response = build_naive_rag(**conf)
+# # print(response)
+
+
+
     
 
 
-# data = build_graph("siapa rektor undiksha", "db_20250221_000015", "text-embedding-3-small", "gpt-4o-mini", 5)
-# print(data)
 
 
         
