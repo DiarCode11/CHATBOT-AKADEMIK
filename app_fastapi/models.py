@@ -31,6 +31,7 @@ class Users(Base):
     email = Column(String(120), unique=True, nullable=False)
     role = Column(Enum(UserRole), nullable=False, default=UserRole.user)
     password = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.now)
 
 class PdfDatasets(Base):
     __tablename__ = 'tbl_pdf_dataset'
@@ -42,7 +43,7 @@ class PdfDatasets(Base):
     created_by_id = Column(String(100), ForeignKey('tbl_users.id'), nullable=False)
     created_by = relationship('Users', backref='pdf_datasets', lazy='joined')
     created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.now)
     deleted_at = Column(DateTime, nullable=True)
 
     def __repr__(self):
@@ -69,7 +70,7 @@ class UrlDatasets(Base):
     created_by_id = Column(String(100), ForeignKey('tbl_users.id'), nullable=False)
     created_by = relationship('Users', backref='url_datasets', lazy=True)
     created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False, default=datetime.now())
+    updated_at = Column(DateTime, nullable=False, default=datetime.now)
     deleted_at = Column(DateTime, nullable=True)
 
     def __repr__(self):

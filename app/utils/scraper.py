@@ -5,10 +5,8 @@ from bs4 import BeautifulSoup
 def clean_text(text: str):
     # Hapus newline di awal dan akhir teks
     text = text.strip()
-
     # Ganti lebih dari dua newline berturut-turut menjadi hanya dua newline
     text = re.sub(r'\n{3,}', '\n\n', text)
-
     return text
 
 def remove_non_ascii(text):
