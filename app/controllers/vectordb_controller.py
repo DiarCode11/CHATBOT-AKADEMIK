@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, send_file
 from ..models import PdfDatasets, UrlDatasets, EmbedderSetting, Chunks, ModifiedDataset, db
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_core.documents import Document
@@ -13,9 +13,31 @@ import os
 from datetime import datetime
 from flask_jwt_extended import jwt_required
 from ..utils.authorization import role_required
+from ..utils.generate_db_to_excel import generate_excel
 
 load_dotenv()
 vectordb_controller = Blueprint('vectordb', __name__)
+
+@vectordb_controller.route("/download", methods=["GET"])
+def download_vector_db():
+    # latest_embedder_setting = EmbedderSetting.query.order_by(EmbedderSetting.created_at.desc()).first()
+    # setting = latest_embedder_setting.to_dict()
+
+    # vector_db_name = setting["vector_db_name"]
+    # embedder = OpenAIEmbeddings(model=setting["embedder"])
+    # vector_db_path = f"src/db/{vector_db_name}"
+    # filename = "dataset.xlsx"
+
+    # generate_excel(embedder, vector_db_path, filename)
+    # excel_path = f"output_excel/{filename}"
+    print("endpoint download diakses")
+
+    try:
+        return send_file("output_excel/dataset.xlsx", as_attachment=True)
+    except Exception as e:
+        return jsonify({"message": "Error downloading file"}), 500
+
+
 
 @jwt_required()
 @role_required('admin')
@@ -150,8 +172,6 @@ async def generate_vector_db():
 
     print("Isi dokumen PDF: ", documents)
 
-    # Ubah data dari database ke bentuk dict dengan nama file sebagai key nya
-    # Tujuannya untuk membandingkan dengan file pdf yang ada di folder dataset apakah sudah ada atau tidak
     pdf_dict = {
         data.filename: {
             "description": data.description,
@@ -165,7 +185,6 @@ async def generate_vector_db():
 
     for doc in documents:
         # Ambil nama file dari filepath nya
-        # filename = doc.metadata['source'].split("\\")[-1] 
         filename = os.path.basename(doc.metadata['source'])
 
         # Jika file di folder tidak terdaftar di database maka skip ke iterasi selanjutnya

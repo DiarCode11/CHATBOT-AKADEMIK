@@ -4,23 +4,19 @@ from dotenv import load_dotenv
 from src.state import AgentState
 import os
 
-class RetrieverAgent:
+class RetrievalAgent:
     @staticmethod
     def similiarity_search(state: AgentState):
         # Load embedding model
         load_dotenv()
-
         embedder = state["embedder_model"]
         vector_db_name = state["vector_db_name"]
         candidates_size = state['candidates_size']
-
         embeddings = OpenAIEmbeddings(model=embedder)
         query = state["expanded_question"]
         vector_from_query = embeddings.embed_query(query)
         state["vector_from_query"] = vector_from_query
-
         chunks_data = []
-
         try:
             vector_db_path = f"src/db/{vector_db_name}"
             db = FAISS.load_local(vector_db_path, embeddings, allow_dangerous_deserialization=True)

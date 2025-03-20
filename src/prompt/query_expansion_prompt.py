@@ -12,8 +12,6 @@ CONTEXT_ABBREVIATIONS = {
     "KEJUR": "Ketua Jurusan (Kejur)",
     "KAPRODI": "Kepala Program Studi (Kaprodi)",
     "KOORPRODI": "Koordinator Program Studi (Koorprodi)",
-    "SNBP": "Seleksi Nasional Berbasis Prestasi (SNBP)",
-    "SNBT": "Seleksi Nasional Berbasis Tes (SNBT)",
     "UKT": "Uang Kuliah Tunggal (UKT)",
     "KIP K": "Kartu Indonesia Pintar Kuliah Undiksha (KIP-K)",
     "KIP-K": "Kartu Indonesia Pintar Kuliah Undiksha (KIP-K)",
@@ -44,5 +42,6 @@ CONTEXT_ABBREVIATIONS = {
     "NIP": "Nomor Induk Pegawai (NIP)",
     "PTI": "Pendidikan Teknik Informatika (PTI)",
     "ILKOM": "Ilmu Komputer (ILKOM)",
-    "TRPL": "Teknik Rekayasa Perangkat Lunak (TRPL)"
+    "TRPL": "Teknik Rekayasa Perangkat Lunak (TRPL)",
+    "SI": "Sistem Informasi"
 }

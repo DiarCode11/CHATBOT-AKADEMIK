@@ -6,7 +6,6 @@ class AgentState(TypedDict):
     embedder_model : str = None
     llm_model : str = None
     candidates_size : int = None
-    data_source : Optional[str]= None
     expanded_question : Optional[str]= None
     vector_from_query : Optional[str]= None
     raw_context : Optional[str]= None
