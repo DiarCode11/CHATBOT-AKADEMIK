@@ -30,47 +30,62 @@ def cosine_similarity(vec1, vec2):
     similarity = dot_product / (norm_vec1 * norm_vec2)
     return similarity
 
-def calculate_relevancy(df: pd.DataFrame):
+def calculate_relevancy(df: pd.DataFrame, result_name: str):
     data = {
-        "PERTANYAAN ASLI": [],
-        "PERTANYAAN BUATAN 1": [],
-        "PERTANYAAN BUATAN 2": [],
-        "PERTANYAAN BUATAN 3": [],
+        "P0": [],
+        "P1": [],
+        "P2": [],
+        "P3": [],
+        "Vector P0": [],
+        "Vector P1": [],
+        "Vector P2": [],
+        "Vector P3": [],
         "eg1": [],
         "eg2": [],
         "eg3": [],
-
+        "RR Score": []
     }
 
     for index, row in df.iterrows():
-        embedding_question = embed_question(row['PERTANYAAN ASLI'])
-        embedding1 = embed_question(row['PERTANYAAN BUATAN 1'])
-        embedding2 = embed_question(row['PERTANYAAN BUATAN 2'])
-        embedding3 = embed_question(row['PERTANYAAN BUATAN 3'])
+        embedding_question = embed_question(row['P0'])
+        embedding1 = embed_question(row['P1'])
+        embedding2 = embed_question(row['P2'])
+        embedding3 = embed_question(row['P3'])
+
+        data["Vector P0"].append(embedding_question)
+        data["Vector P1"].append(embedding1)
+        data["Vector P2"].append(embedding2)
+        data["Vector P3"].append(embedding3)
 
         eg1 = cosine_similarity(embedding_question, embedding1)
         eg2 = cosine_similarity(embedding_question, embedding2)
         eg3 = cosine_similarity(embedding_question, embedding3)
 
-        data["PERTANYAAN ASLI"].append(row['PERTANYAAN ASLI'])
-        data["PERTANYAAN BUATAN 1"].append(row['PERTANYAAN BUATAN 1'])
-        data["PERTANYAAN BUATAN 2"].append(row['PERTANYAAN BUATAN 2'])
-        data["PERTANYAAN BUATAN 3"].append(row['PERTANYAAN BUATAN 3'])
+        data["P0"].append(row['P0'])
+        data["P1"].append(row['P1'])
+        data["P2"].append(row['P2'])
+        data["P3"].append(row['P3'])
 
         data["eg1"].append(eg1)
         data["eg2"].append(eg2)
         data["eg3"].append(eg3)
 
+        rr_score = (eg1 + eg2 + eg3) / 3
+        data["RR Score"].append(rr_score)
+
         print("\nIndex: ", index)
-        print("Pertanyaan Asli: ", row['PERTANYAAN ASLI'])
+        print("Pertanyaan Asli: ", row['P0'])
 
 
     df = pd.DataFrame(data)
-    df.to_csv("eval/dataset/response_relevancy_result.csv", index=False)
+    df.to_excel(f"eval/result/{result_name}.xlsx", index=False, engine="openpyxl")
     print(df)
 
-
 if __name__ == "__main__":
-    df = read_csv("eval/dataset/Response Relevancy.csv")
-    calculate_relevancy(df)
+    # df = read_csv("eval/dataset/Evaluasi Chatbot Akasha dengan RAGAS (Corrective RAG) - RR Test Case.csv")
+    # print(df.columns)
+    # calculate_relevancy(df, "RR_Corrective")
 
+    df = read_csv("eval/dataset/Evaluasi Chatbot Akasha dengan RAGAS (Naive RAG) - RR Test Case.csv")
+    print(df.columns)
+    calculate_relevancy(df, "RR_Naive")
