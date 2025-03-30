@@ -76,6 +76,8 @@ def check_admin():
     return jsonify({'message': 'Anda terautentikasi sebagai admin', 'status': True}), 200
 
 @user_controller.route('/add', methods=['POST'])
+@jwt_required()
+@role_required('admin')
 def add_user_by_admin():
     data = request.get_json()
     print("Berhasil mengakses endpoint add user by admin")
@@ -144,6 +146,7 @@ def add_user_by_admin():
         new_user = Users(
             username = name, 
             email = email, 
+            role = role,
             password=password_hash,
             created_at=datetime.now(),
             updated_at=datetime.now(),
@@ -321,37 +324,19 @@ def logout():
 
 @user_controller.route('/delete/<id>', methods=['DELETE'])
 def delete_user(id):
-    data = request.get_json()
-
-    if not data or 'email' not in data or 'password' not in data:
-        return jsonify({'message': 'JSON tidak valid'}), 400
-    
-    if not data['email'] or not data['password']:
-        return jsonify({'message': 'Input tidak boleh kosong'}), 400
-    
-    # cek apakah yang menghapus adalah admin
-    user_remover = Users.query.filter_by(email=data['email']).first()
-
-    user_want_to_remove = Users.query.get(id)
-
     try:
-        ph.verify(user_remover.password, data['password'])
-    except Exception as e:
-        return jsonify({'message': 'Email atau password salah'}), 401
-    
-    if user_remover.id == user_want_to_remove.id:
-        return jsonify({'message': 'Anda tidak bisa menghapus diri sendiri'}), 403
+        print("menghapus pengguna")
+        user = Users.query.filter_by(id=id, deleted_at=None).first()
+        if not user:
+            return jsonify({'message': 'User tidak ditemukan'}), 404
+        
+        user.deleted_at = datetime.now()
+        db.session.commit()
+        return jsonify({'message': 'User berhasil dihapus'}), 200
+        
+    except:
+        return jsonify({'message': 'Terdapat masalah ketika mengakses database'}), 500
 
-    if user_remover.role != UserRole.admin:
-        return jsonify({'message': 'Anda tidak memiliki izin untuk menghapus user'}), 403
-    
-    if user_remover.role != UserRole.admin:
-        return jsonify({'message': 'Anda tidak memiliki izin untuk menghapus user'}), 403
-
-    user = Users.query.get(id)
-    db.session.delete(user)
-    db.session.commit()
-    return jsonify({'message': 'User berhasil dihapus'}), 200
 
 # @user_controller.route('/logout', methods=['POST'])
 # def logout():
