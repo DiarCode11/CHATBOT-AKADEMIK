@@ -29,12 +29,12 @@ def generate_excel(embedder: OpenAIEmbeddings, db_path: str, filename: str = "ne
 
 
 
-embedder =OpenAIEmbeddings(model="text-embedding-3-small")
+# embedder =OpenAIEmbeddings(model="text-embedding-3-small")
 
-conf = {
-    "db_path": "src/db/db_20250314_092647",
-    "embedder": embedder
-}
+# conf = {
+#     "db_path": "src/db/db_20250314_092647",
+#     "embedder": embedder
+# }
 
-generate_excel(**conf)
+# generate_excel(**conf)
             
