@@ -1,15 +1,13 @@
 from langgraph.graph import END, START, StateGraph
 from src.state import AgentState
-from src.agents import QueryExpansionAgent, RetrieverAgent, CorrectiveAgent, GeneratorAgent
-from src.naive_rag.retriever import Retriever
-from src.naive_rag.generator import Generator 
+from src.agents import QueryExpansionAgent, RetrievalAgent, CorrectiveAgent, GeneratorAgent
 
 def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_model: str, candidates_size: int):
     workflow = StateGraph(AgentState)
 
     # Add nodes
     workflow.add_node("query_expansion_agent", QueryExpansionAgent.expand_query)
-    workflow.add_node("retriever_agent", RetrieverAgent.similiarity_search)
+    workflow.add_node("retriever_agent", RetrievalAgent.similiarity_search)
     workflow.add_node("corrective_agent", CorrectiveAgent.correct)
     workflow.add_node("generator_agent", GeneratorAgent.generate)
 
@@ -28,9 +26,12 @@ def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_mod
         "candidates_size": candidates_size
     })
 
-    print(result["final_answer"])
+    print(result)
 
     return result
+
+from src.naive_rag.retriever import Retriever
+from src.naive_rag.generator import Generator 
 
 def build_naive_rag(question: str, vector_db_name: str, embedder_model: str, llm_model: str, candidates_size: int):
     workflow = StateGraph(AgentState)
@@ -57,16 +58,16 @@ def build_naive_rag(question: str, vector_db_name: str, embedder_model: str, llm
 
     return result
 
-# conf = {
-#     "question": "berikan mata kuliah di prodi pendidikan teknik informatika",
-#     "vector_db_name": "db_20250223_203128",
-#     "embedder_model": "text-embedding-3-small",
-#     "llm_model": "gpt-4o-mini",
-#     "candidates_size": 15
-# }
+conf = {
+    "question": "kapan jadwal kkn 2025",
+    "vector_db_name": "db_20250223_203128",
+    "embedder_model": "text-embedding-3-small",
+    "llm_model": "gpt-4o-mini",
+    "candidates_size": 15
+}
 
-# response = build_naive_rag(**conf)
-# # print(response)
+# response = build_graph(**conf)
+# print(response)
 
 
 

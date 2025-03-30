@@ -136,23 +136,23 @@ def create_db(csv_path: str, dest_path: str):
 
     print("3. Database berhasil di buat")
 
-def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, embedding_model: str):    
+def chunking(docs, size, overlap):
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
+        chunk_size=size,
+        chunk_overlap=overlap,
     )
-
     chunks = text_splitter.split_documents(docs)
+    return chunks
+
+
+def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, embedding_model: str):    
+    chunks = chunking(docs, chunk_size, chunk_overlap)
 
     for index, doc in enumerate(chunks):
         doc.metadata["index"] = index
 
-    print('text berhasil di split')
-
     EMBEDDER = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model=embedding_model)
-
     data = []
-
     try: 
         vector_db = FAISS.from_documents(chunks, EMBEDDER)
         faiss_index = vector_db.index
@@ -175,7 +175,6 @@ def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, em
             data.append(
                 {
                     "index": i,
-                    # "vector": str(vector),
                     "vector": str(vector.tolist()),
                     "chunk": doc.page_content,
                     "metadata": doc.metadata,

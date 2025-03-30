@@ -17,11 +17,11 @@ def init_socket_event(socketio):
     @socketio.on('connect', namespace='/')
     def handle_connect():
         clients.append(request.remote_addr)
-        print(f"\n{len(set(clients))} Klien unik terhubung.")
-        user_amount = len(set(clients))
+        print(f"\n{len(clients)} Klien unik terhubung.")
+        user_amount = len(clients)
         total_chat = ChatProcess.query.count()
         non_updated_dataset_total = ModifiedDataset.query.filter(ModifiedDataset.action != None).count()
-        print(f"IP client terhubung: {str(set(clients))}")
+        print(f"IP client terhubung: {str(clients)}")
         emit('user_connected', {
             'amount': user_amount, 
             'message': 'klien terhubung', 
@@ -32,9 +32,9 @@ def init_socket_event(socketio):
     def handle_disconnect():
         print("\nKlien terputus.")
         clients.remove(request.remote_addr)
-        print("Jumlah client terhubung (unique): ", len(set(clients)))
+        print("Jumlah client terhubung (unique): ", len(clients))
         print("IP client terhubung: ", str(clients))
-        user_amount = len(set(clients))
+        user_amount = len(clients)
         emit('user_disconnected', {'amount': user_amount, 'message': 'klien terputus'}, broadcast=True)
 
     @socketio.on('send_message')
