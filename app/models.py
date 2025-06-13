@@ -54,6 +54,7 @@ class PdfDatasets(db.Model):
     id = db.Column(db.String(100), primary_key=True, default=lambda: str(uuid.uuid4()))
     filename = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text, nullable=False)
+    url = db.Column(db.Text, nullable=False)
     year = db.Column(db.String(100), nullable=False)
     created_by_id = db.Column(db.String(100), db.ForeignKey('tbl_users.id'), nullable=False)
     created_by = db.relationship('Users', backref='pdf_datasets', lazy=True)

@@ -62,6 +62,7 @@ def init_socket_event(socketio):
         print(f"ID klien: {socket_id}")
         print(f"Pesan dari klien: {data['message']}")
         query = data['message']  # Mengambil teks pesan yang dikirimkan
+        history = data['history']
 
         try:
             new_id = str(uuid.uuid4())
@@ -72,7 +73,8 @@ def init_socket_event(socketio):
                     embedder_model = embedder, 
                     vector_db_name = vector_db_name,
                     llm_model = llm_model,
-                    candidates_size = candidates_size
+                    candidates_size = candidates_size,
+                    history=history
                 )
 
             if 'Naive-RAG' in data.get('mode'):

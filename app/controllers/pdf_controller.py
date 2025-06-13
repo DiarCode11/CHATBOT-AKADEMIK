@@ -7,6 +7,7 @@ from datetime import datetime
 from ..utils.authorization import role_required
 from sqlalchemy import func
 import os
+import dotenv
 import uuid
 
 pdf_controller = Blueprint('pdf', __name__)
@@ -58,6 +59,8 @@ def get_pdf_dataset():
 def add_pdf_dataset():
     year = request.form.get('year')
 
+    url = os.getenv("DOMAIN")
+
     if not (year.isdigit() and len(year) == 4):
         return jsonify({"status": "failed", "message": "Format tahun tidak valid"}), 400
 
@@ -96,6 +99,7 @@ def add_pdf_dataset():
         id=new_id,
         filename=filename,
         year=data['year'],
+        url=f"{url}/view/{filename}",
         description=data['description'],
         created_by_id=session['user_id'],
         created_at=datetime.now(),

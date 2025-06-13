@@ -1,7 +1,7 @@
 from gevent import monkey
 monkey.patch_all()
 
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_jwt_extended.exceptions import NoAuthorizationError, JWTDecodeError
@@ -27,15 +27,15 @@ DB_PORT = os.getenv('DB_PORT')
 DB_URI = f'mysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 # Ambil daftar domain/IP dari .env
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
+# allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
 
-# Jika ada lebih dari satu IP/Domain, ubah menjadi list
-if "," in allowed_origins:
-    allowed_origins = allowed_origins.split(",")
+# # Jika ada lebih dari satu IP/Domain, ubah menjadi list
+# if "," in allowed_origins:
+#     allowed_origins = allowed_origins.split(",")
 
 # Inisialisasi objek SQLAlchemy dan SocketIO
 db = SQLAlchemy()
-socketio = SocketIO(async_mode='gevent', cors_allowed_origins=allowed_origins)
+socketio = SocketIO(async_mode='gevent', cors_allowed_origins="*")
 
 # Inisialisasi JWTManager
 jwt = JWTManager()
@@ -45,7 +45,7 @@ def create_app():
     app = Flask(__name__)
 
     # Mengaktifkan CORS
-    CORS(app, supports_credentials=True, origins=allowed_origins)
+    CORS(app, supports_credentials=True, origins="*")
     
     # Menambahkan konfigurasi database ke aplikasi
     app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
@@ -62,9 +62,9 @@ def create_app():
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
     app.config["JWT_SESSION_COOKIE"] = False  # Gunakan masa kedaluwarsa eksplisit untuk access token
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Access token berlaku 10 menit
-    app.config["JWT_COOKIE_SECURE"] = True  # Ubah ke True jika HTTPS
+    app.config["JWT_COOKIE_SECURE"] = False  # Ubah ke True jika HTTPS
     app.config["JWT_COOKIE_HTTPONLY"] = True
-    app.config["JWT_COOKIE_SAMESITE"] = "None"  # Ubah ke "None" jika HTTPS
+    app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # Ubah ke "None" jika HTTPS
 
     # Menginisialisasi objek db dan socketio dengan aplikasi Flask
     db.init_app(app)
@@ -88,6 +88,39 @@ def create_app():
     @app.route('/test', methods=['GET'])
     def test_connection():
         return jsonify({"message": "Server is running"}), 200
+    
+    @app.route('/download/<filename>', methods=['GET'])
+    def download_file(filename):
+        print("endpoint download diakses")
+        print(filename)
+
+        # Ambil path absolut ke folder dataset (dari folder `app/`)
+        dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'dataset'))
+        return send_from_directory(dataset_path, filename, as_attachment=False, mimetype='application/pdf')
+    
+    @app.route('/view/<filename>')
+    def view_inline(filename):
+        """Route yang langsung return HTML dengan iframe"""
+        html_content = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>View PDF - {filename}</title>
+            <style>
+                body {{ margin: 0; padding: 0; }}
+                iframe {{ width: 100%; height: 100vh; border: none; }}
+            </style>
+        </head>
+        <body>
+            <iframe src="/download/{filename}" type="application/pdf">
+                <p>Browser Anda tidak mendukung iframe. 
+                <a href="/download/{filename}">Klik di sini untuk mendownload PDF</a>
+                </p>
+            </iframe>
+        </body>
+        </html>
+        '''
+        return html_content
 
     # Impor blueprint setelah inisialisasi db
     from .controllers.user_controller import user_controller

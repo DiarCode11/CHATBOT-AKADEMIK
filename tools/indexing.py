@@ -147,6 +147,7 @@ def chunking(docs, size, overlap):
 
 def create_db_with_langchain(docs: list, chunk_size: int, chunk_overlap: int, embedding_model: str):    
     chunks = chunking(docs, chunk_size, chunk_overlap)
+    print(chunks)
 
     for index, doc in enumerate(chunks):
         doc.metadata["index"] = index

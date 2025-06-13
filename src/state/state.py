@@ -15,3 +15,4 @@ class AgentState(TypedDict):
     chunks_data : None
     corrective_prompt : Optional[str]= None
     generator_prompt : str = None
+    history : Optional[str]= None

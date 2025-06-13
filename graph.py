@@ -2,7 +2,7 @@ from langgraph.graph import END, START, StateGraph
 from src.state import AgentState
 from src.agents import QueryExpansionAgent, RetrievalAgent, CorrectiveAgent, GeneratorAgent
 
-def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_model: str, candidates_size: int):
+def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_model: str, candidates_size: int, history: list):
     workflow = StateGraph(AgentState)
 
     # Add nodes
@@ -23,7 +23,8 @@ def build_graph(question: str, vector_db_name: str, embedder_model: str, llm_mod
         "vector_db_name": vector_db_name, 
         "embedder_model": embedder_model, 
         "llm_model": llm_model,
-        "candidates_size": candidates_size
+        "candidates_size": candidates_size,
+        "history": history
     })
 
     print(result)
